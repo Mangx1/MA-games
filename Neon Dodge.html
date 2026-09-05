@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#07142c">
+<title>Neon Dodge</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07142c;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button{font:inherit;color:inherit;border:0}
+.app{height:100dvh;width:100%;display:flex;flex-direction:column;overflow:hidden;
+background:radial-gradient(circle at 50% 18%,#173d73 0,#0b2147 34%,#07142c 72%,#050c1e 100%)}
+.top{padding:calc(env(safe-area-inset-top) + 10px) 14px 8px;display:flex;align-items:center;gap:9px}
+.btn{width:44px;height:44px;border-radius:15px;background:rgba(255,255,255,.08);border:1px solid rgba(117,205,255,.25);display:grid;place-items:center}
+.title{flex:1;font-size:21px;font-weight:900;letter-spacing:.2px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:3px 14px 8px}
+.stat{border:1px solid rgba(117,205,255,.2);background:rgba(8,22,50,.58);border-radius:14px;padding:7px;text-align:center}
+.stat small{display:block;color:#91a9d3;font-size:9px;letter-spacing:1px}.stat b{font-size:16px}
+.stageWrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 12px}
+.stage{position:relative;width:min(94vw,520px);height:min(67vh,620px);border-radius:24px;overflow:hidden;
+border:1px solid rgba(90,212,255,.3);background:#061329;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;background:rgba(3,10,27,.72);backdrop-filter:blur(7px);padding:25px}
+.overlay.show{display:flex}.panel{max-width:310px}.panel h1{font-size:32px;margin:0 0 6px}.panel p{color:#a9bbdc;margin:0 0 18px}
+.primary{padding:13px 22px;border-radius:16px;background:linear-gradient(135deg,#7c4dff,#21d4fd);font-weight:900;box-shadow:0 9px 28px rgba(45,173,255,.25)}
+.help{padding:7px 14px 4px;text-align:center;color:#8fa6ce;font-size:11px}
+.bottom{padding:5px 14px calc(env(safe-area-inset-bottom) + 9px);display:flex;gap:8px;justify-content:center}
+.control{padding:10px 15px;border-radius:15px;background:rgba(255,255,255,.07);border:1px solid rgba(117,205,255,.2);font-weight:800;font-size:12px}
+</style>
+</head>
+<body>
+<div class="app">
+ <div class="top">
+  <button class="btn" id="back">‹</button><div class="title">NEON DODGE</div>
+  <button class="btn" id="sound">🔊</button><button class="btn" id="music">♫</button>
+ </div>
+ <div class="stats">
+  <div class="stat"><small>SKOR</small><b id="score">0</b></div>
+  <div class="stat"><small>BEST</small><b id="best">0</b></div>
+  <div class="stat"><small>LEVEL</small><b id="level">1</b></div>
+ </div>
+ <div class="stageWrap">
+  <div class="stage" id="stage">
+   <canvas id="game"></canvas>
+   <div class="overlay show" id="start">
+    <div class="panel"><h1>NEON DODGE</h1><p>Geser pesawat. Hindari meteor dan bertahan selama mungkin.</p><button class="primary" id="play">MULAI</button></div>
+   </div>
+   <div class="overlay" id="over">
+    <div class="panel"><h1>GAME OVER</h1><p id="result"></p><button class="primary" id="again">MAIN LAGI</button></div>
+   </div>
+  </div>
+ </div>
+ <div class="help">Geser jari ke kiri / kanan untuk mengendalikan pesawat</div>
+ <div class="bottom"><button class="control" id="pause">⏸ Jeda</button><button class="control" id="reset">↻ Ulang</button></div>
+</div>
+<script>
+(()=>{"use strict";
+const c=document.getElementById('game'),ctx=c.getContext('2d'),stage=document.getElementById('stage');
+const $=x=>document.getElementById(x);
+let W=0,H=0,dpr=1,playing=false,paused=false,score=0,best=+localStorage.neonBest||0,level=1,last=0,spawn=0,player={x:0,y:0,w:34,h:22},meteors=[],stars=[],targetX=0,audio=null,musicTimer=null,soundOn=true,musicOn=true;
+
+$("best").textContent=best;
+function resize(){const r=stage.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=Math.max(1,Math.floor(r.width));H=Math.max(1,Math.floor(r.height));c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);player.y=H-48;player.x=W/2;targetX=player.x;
+stars=Array.from({length:Math.max(35,Math.floor(W*H/8000))},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.7+.3,s:Math.random()*.7+.2}))}
+addEventListener('resize',resize);resize();
+
+function ac(){if(!audio)audio=new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();return audio}
+function tone(f,d=.07,type='sine',v=.025){if(!soundOn)return;try{let a=ac(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+d)}catch(e){}}
+function music(){clearInterval(musicTimer);if(!musicOn)return;let n=[196,247,294,330,294,247];let i=0;musicTimer=setInterval(()=>{if(playing&&!paused)tone(n[i++%n.length],.10,'triangle',.009)},520)}
+function resetGame(){score=0;level=1;meteors=[];spawn=0;paused=false;playing=true;last=performance.now();$("score").textContent=0;$("level").textContent=1;$("pause").textContent="⏸ Jeda";$("start").classList.remove("show");$("over").classList.remove("show");resize();music();tone(523,.12,'square',.03);requestAnimationFrame(loop)}
+function gameOver(){playing=false;clearInterval(musicTimer);tone(110,.25,'sawtooth',.035);if(score>best){best=score;localStorage.neonBest=best;$("best").textContent=best}$("result").textContent=`Skor ${score}. Rekor kamu ${best}.`;$("over").classList.add("show")}
+function spawnMeteor(){let s=13+Math.random()*12+level*1.7;meteors.push({x:22+Math.random()*(W-44),y:-35,r:s,vy:150+Math.random()*80+level*20,rot:Math.random()*6})}
+function hit(a,b){return Math.abs(a.x-b.x)<a.w*.5+b.r*.65&&Math.abs(a.y-b.y)<a.h*.5+b.r*.65}
+function draw(){
+ctx.clearRect(0,0,W,H);
+let bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#071a39');bg.addColorStop(1,'#030a1b');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+for(const s of stars){ctx.globalAlpha=.35+s.s*.35;ctx.fillStyle='#aeeaff';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fill()}ctx.globalAlpha=1;
+for(const m of meteors){ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.rot);let g=ctx.createRadialGradient(-4,-5,2,0,0,m.r);g.addColorStop(0,'#ffd36b');g.addColorStop(.4,'#ff6b4a');g.addColorStop(1,'#8e1f64');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,m.r,0,7);ctx.fill();ctx.restore()}
+ctx.save();ctx.translate(player.x,player.y);ctx.shadowBlur=18;ctx.shadowColor='#24dfff';ctx.fillStyle='#31dcff';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(19,13);ctx.lineTo(0,8);ctx.lineTo(-19,13);ctx.closePath();ctx.fill();ctx.fillStyle='#f7fbff';ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,6);ctx.lineTo(0,4);ctx.lineTo(-6,6);ctx.closePath();ctx.fill();ctx.restore()
+}
+function loop(t){if(!playing)return;let dt=Math.min((t-last)/1000,.035);last=t;if(!paused){score+=Math.floor(dt*10);level=1+Math.floor(score/120);$("score").textContent=score;$("level").textContent=level;player.x+=(targetX-player.x)*Math.min(1,dt*12);spawn+=dt;if(spawn>Math.max(.26,.75-level*.035)){spawn=0;spawnMeteor()}for(let i=meteors.length-1;i>=0;i--){let m=meteors[i];m.y+=m.vy*dt;m.rot+=dt*1.7;if(hit(player,m)){gameOver();return}if(m.y>H+50)meteors.splice(i,1)}}draw();requestAnimationFrame(loop)}
+function setPointer(e){const r=c.getBoundingClientRect();targetX=Math.max(22,Math.min(W-22,e.clientX-r.left))}
+c.addEventListener('pointerdown',e=>{try{ac()}catch(_){}setPointer(e);c.setPointerCapture?.(e.pointerId)});
+c.addEventListener('pointermove',e=>{if(e.buttons)setPointer(e)});
+$("play").onclick=()=>resetGame();$("again").onclick=()=>resetGame();
+$("pause").onclick=()=>{if(!playing)return;paused=!paused;$("pause").textContent=paused?"▶ Lanjut":"⏸ Jeda";tone(paused?260:520,.08)};
+$("reset").onclick=()=>resetGame();
+$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"🔊":"🔇";if(soundOn)tone(660,.08)};
+$("music").onclick=()=>{musicOn=!musicOn;$("music").textContent=musicOn?"♫":"×";music()};
+$("back").onclick=()=>{if(history.length>1)history.back();else location.href='about:blank'};
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing){paused=true;$("pause").textContent="▶ Lanjut"}});
+draw();
+})();
+</script>
+</body>
+</html>
