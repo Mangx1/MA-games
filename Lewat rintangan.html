@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Flux: Neon Gravity</title>
+    <!-- Google Fonts untuk Tampilan Modern -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0f172a 0%, #070913 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 14px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            padding: 0 4px;
+            font-weight: 600;
+        }
+
+        .stats span b {
+            color: #f1f5f9;
+        }
+
+        .canvas-box {
+            width: 100%;
+            aspect-ratio: 4 / 5;
+            background: #03050a;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 16px;
+            box-shadow: inset 0 0 20px rgba(0, 242, 254, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: pointer;
+        }
+
+        .action-panel {
+            width: 100%;
+        }
+
+        .btn-gravity {
+            width: 100%;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            color: #070913;
+            border: none;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 800;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0, 242, 254, 0.35);
+            transition: transform 0.1s, filter 0.2s;
+            touch-action: manipulation;
+            letter-spacing: 1px;
+        }
+
+        .btn-gravity:active {
+            transform: scale(0.96);
+            filter: brightness(1.15);
+        }
+
+        /* Modal Modern Glassmorphism */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 5, 10, 0.85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            padding: 28px 22px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 310px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+        }
+
+        .modal-content h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #00f2fe;
+            margin-bottom: 8px;
+        }
+
+        .modal-content p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .modal-btn {
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            color: #070913;
+            border: none;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            border-radius: 14px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <header>
+            <h1>CYBER FLUX</h1>
+            <div class="stats">
+                <span>SEKTOR: <b id="level-disp">1</b> / 10</span>
+                <span>DATA: <b id="score-disp">0</b> / <b id="target-disp">10</b></span>
+            </div>
+        </header>
+
+        <div class="canvas-box" id="canvas-box">
+            <canvas id="gameCanvas" width="320" height="400"></canvas>
+        </div>
+
+        <div class="action-panel">
+            <button class="btn-gravity" id="gravity-btn">UBAH GRAVITASI (TAP)</button>
+        </div>
+    </div>
+
+    <!-- Modal Notifikasi -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">SEKTOR BERSIH</h2>
+            <p id="modal-text">Data inti berhasil dikumpulkan.</p>
+            <button class="modal-btn" id="modal-btn" onclick="nextLevel()">LANJUT SEKTOR</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Konfigurasi 10 Level Modern
+        const levels = [
+            { level: 1, target: 8, speed: 3.0, obstacleRate: 110 },
+            { level: 2, target: 12, speed: 3.5, obstacleRate: 95 },
+            { level: 3, target: 16, speed: 4.0, obstacleRate: 85 },
+            { level: 4, target: 20, speed: 4.5, obstacleRate: 75 },
+            { level: 5, target: 24, speed: 5.0, obstacleRate: 70 },
+            { level: 6, target: 28, speed: 5.4, obstacleRate: 65 },
+            { level: 7, target: 32, speed: 5.8, obstacleRate: 60 },
+            { level: 8, target: 36, speed: 6.2, obstacleRate: 55 },
+            { level: 9, target: 40, speed: 6.6, obstacleRate: 50 },
+            { level: 10, target: 50, speed: 7.2, obstacleRate: 45 }
+        ];
+
+        let currentLevelIdx = 0;
+        let score = 0;
+        let targetScore = 8;
+        let gameSpeed = 3.0;
+        let obstacleRate = 110;
+        let frameCount = 0;
+
+        // Karakter Pemain (Neon Core)
+        let player = {
+            x: 60,
+            y: 200,
+            radius: 12,
+            vy: 0,
+            gravity: 0.6,
+            gravityDir: 1 // 1 ke bawah, -1 ke atas
+        };
+
+        let obstacles = [];
+        let particles = [];
+        let isPlaying = false;
+
+        const levelDisp = document.getElementById('level-disp');
+        const scoreDisp = document.getElementById('score-disp');
+        const targetDisp = document.getElementById('target-disp');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalText = document.getElementById('modal-text');
+        const modalBtn = document.getElementById('modal-btn');
+
+        function initLevel() {
+            const cfg = levels[currentLevelIdx];
+            targetScore = cfg.target;
+            gameSpeed = cfg.speed;
+            obstacleRate = cfg.obstacleRate;
+            score = 0;
+            obstacles = [];
+            particles = [];
+            frameCount = 0;
+
+            player.y = 200;
+            player.vy = 0;
+            player.gravityDir = 1;
+
+            levelDisp.innerText = cfg.level;
+            scoreDisp.innerText = score;
+            targetDisp.innerText = targetScore;
+
+            isPlaying = true;
+            loop();
+        }
+
+        function switchGravity() {
+            if (!isPlaying) return;
+            player.gravityDir *= -1;
+            // Buat efek partikel saat gravitasi berubah
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: player.x,
+                    y: player.y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    alpha: 1
+                });
+            }
+        }
+
+        // Event Trigger untuk Tombol dan Layar
+        document.getElementById('gravity-btn').addEventListener('click', switchGravity);
+        canvas.addEventListener('click', switchGravity);
+
+        function spawnObstacle() {
+            // Rintangan berupa laser atas atau bawah
+            let isTop = Math.random() < 0.5;
+            let height = 80 + Math.random() * 90;
+            obstacles.push({
+                x: canvas.width + 20,
+                y: isTop ? 0 : canvas.height - height,
+                width: 24,
+                height: height,
+                isTop: isTop
+            });
+
+            // Sesekali spawn data node (poin) di tengah
+            if (Math.random() < 0.6) {
+                obstacles.push({
+                    x: canvas.width + 20,
+                    y: 120 + Math.random() * 160,
+                    width: 16,
+                    height: 16,
+                    isData: true,
+                    collected: false
+                });
+            }
+        }
+
+        function update() {
+            if (!isPlaying) return;
+            frameCount++;
+
+            // Update posisi pemain berdasarkan arah gravitasi
+            player.vy = player.gravity * player.gravityDir * 6;
+            player.y += player.vy;
+
+            // Batas atas dan bawah arena
+            if (player.y - player.radius < 20) {
+                player.y = 20 + player.radius;
+            }
+            if (player.y + player.radius > canvas.height - 20) {
+                player.y = canvas.height - 20 - player.radius;
+            }
+
+            if (frameCount % obstacleRate === 0) {
+                spawnObstacle();
+            }
+
+            // Gerakkan rintangan dan data
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= gameSpeed;
+
+                let o = obstacles[i];
+
+                // Cek jika rintangan keluar layar
+                if (o.x + o.width < 0) {
+                    obstacles.splice(i, 1);
+                    continue;
+                }
+
+                // Cek tabrakan atau pengambilan data
+                if (o.isData) {
+                    if (!o.collected &&
+                        Math.abs(player.x - (o.x + o.width/2)) < player.radius + o.width/2 &&
+                        Math.abs(player.y - (o.y + o.height/2)) < player.radius + o.height/2) {
+                        o.collected = true;
+                        score++;
+                        scoreDisp.innerText = score;
+                        obstacles.splice(i, 1);
+
+                        if (score >= targetScore) {
+                            isPlaying = false;
+                            showWinModal();
+                            return;
+                        }
+                    }
+                } else {
+                    // Cek tabrakan dengan laser rintangan
+                    if (player.x + player.radius > o.x && player.x - player.radius < o.x + o.width &&
+                        player.y + player.radius > o.y && player.y - player.radius < o.y + o.height) {
+                        isPlaying = false;
+                        showGameOverModal();
+                        return;
+                    }
+                }
+            }
+
+            // Update partikel
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].x += particles[i].vx;
+                particles[i].y += particles[i].vy;
+                particles[i].alpha -= 0.04;
+                if (particles[i].alpha <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Garis pembatas atas & bawah bergeser (efek futuristik)
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#00f2fe';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.moveTo(0, 20); ctx.lineTo(canvas.width, 20);
+            ctx.moveTo(0, canvas.height - 20); ctx.lineTo(canvas.width, canvas.height - 20);
+            ctx.stroke();
+            ctx.shadowBlur = 0; // Reset shadow
+
+            // Gambar Rintangan & Data Nodes
+            for (let o of obstacles) {
+                if (o.isData) {
+                    // Data Node (Kotak Neon Berputar/Bersinar)
+                    ctx.fillStyle = '#10b981';
+                    ctx.shadowColor = '#10b981';
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(o.x, o.y, o.width, o.height);
+                    ctx.shadowBlur = 0;
+                } else {
+                    // Laser Barrier
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.shadowColor = '#f43f5e';
+                    ctx.shadowBlur = 12;
+                    ctx.fillRect(o.x, o.y, o.width, o.height);
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // Gambar Partikel Efek
+            for (let p of particles) {
+                ctx.fillStyle = `rgba(0, 242, 254, ${p.alpha})`;
+                ctx.fillRect(p.x, p.y, 4, 4);
+            }
+
+            // Gambar Pemain (Neon Orb)
+            ctx.fillStyle = '#00f2fe';
+            ctx.shadowColor = '#00f2fe';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function loop() {
+            if (!isPlaying) return;
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        function showWinModal() {
+            if (currentLevelIdx < levels.length - 1) {
+                modalTitle.innerText = "SEKTOR BERSIH! ⚡";
+                modalText.innerText = `Sektor ${levels[currentLevelIdx].level} berhasil diamankan. Bersiap ke sektor berikutnya.`;
+                modalBtn.innerText = "LANJUT SEKTOR";
+                modalBtn.onclick = nextLevel;
+            } else {
+                modalTitle.innerText = "MAESTRO CYBER! 🏆";
+                modalText.innerText = "Luar biasa! Kamu berhasil menamatkan seluruh 10 sektor Cyber Flux!";
+                modalBtn.innerText = "MAIN DARI AWAL";
+                modalBtn.onclick = restartFromBeginning;
+            }
+            modal.classList.add('show');
+        }
+
+        function showGameOverModal() {
+            modalTitle.innerText = "SISTEM CRASH! 💥";
+            modalText.innerText = `Kamu menabrak firewall laser di data ke-${score}. Coba lagi sektor ini!`;
+            modalBtn.innerText = "COBA LAGI";
+            modalBtn.onclick = restartLevel;
+            modal.classList.add('show');
+        }
+
+        function nextLevel() {
+            modal.classList.remove('show');
+            currentLevelIdx++;
+            initLevel();
+        }
+
+        function restartLevel() {
+            modal.classList.remove('show');
+            initLevel();
+        }
+
+        function restartFromBeginning() {
+            modal.classList.remove('show');
+            currentLevelIdx = 0;
+            initLevel();
+        }
+
+        // Kontrol Keyboard Spasi untuk PC
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                switchGravity();
+            }
+        });
+
+        // Jalankan game saat pertama kali dimuat
+        initLevel();
+    </script>
+</body>
+</html>
