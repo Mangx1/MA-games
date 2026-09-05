@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1435">
+<title>Puzzle Jigsaw</title>
+<style>
+:root{
+  --bg:#08112d; --panel:#111d45; --panel2:#172652; --line:rgba(117,178,255,.24);
+  --text:#f6f8ff; --muted:#a9b8df; --cyan:#37d7ff; --purple:#8b5cf6; --pink:#ec4cff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text)}
+body{min-height:100dvh;display:flex;align-items:stretch;justify-content:center}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+.app{width:100%;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden;
+ background:
+ radial-gradient(60% 50% at 8% 5%,rgba(76,92,255,.30),transparent 65%),
+ radial-gradient(55% 50% at 100% 15%,rgba(0,210,255,.20),transparent 65%),
+ linear-gradient(145deg,#07112d,#122455 52%,#10163d)}
+.top{padding:calc(env(safe-area-inset-top) + 12px) 16px 8px;display:flex;align-items:center;gap:10px}
+.back,.icon{width:46px;height:46px;border-radius:16px;background:rgba(255,255,255,.09);border:1px solid var(--line);
+display:grid;place-items:center;box-shadow:0 8px 25px rgba(0,0,0,.16)}
+.back{font-size:24px}.brand{font-weight:900;font-size:22px;letter-spacing:-.5px;flex:1}
+.actions{display:flex;gap:8px}.icon{font-size:20px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:6px 16px 10px}
+.stat{background:rgba(17,29,69,.72);border:1px solid var(--line);border-radius:15px;padding:8px 6px;text-align:center}
+.stat small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px}.stat b{font-size:16px}
+.main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 16px 10px}
+.board{width:min(92vw,560px);aspect-ratio:1;border-radius:24px;padding:8px;background:rgba(7,14,39,.82);
+border:1px solid rgba(117,178,255,.32);box-shadow:0 18px 50px rgba(0,0,0,.28);position:relative;touch-action:none}
+.grid{width:100%;height:100%;display:grid;gap:5px}
+.tile{border-radius:12px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.16);
+background:linear-gradient(135deg,#4c7dff,#c63cff);box-shadow:0 4px 10px rgba(0,0,0,.18);touch-action:manipulation}
+.tile:active{transform:scale(.98)}
+.tile canvas{width:100%;height:100%;display:block}
+.tile.empty{visibility:hidden}
+.win{position:absolute;inset:0;border-radius:24px;background:rgba(5,12,35,.88);display:none;place-items:center;text-align:center;padding:24px;backdrop-filter:blur(8px)}
+.win.show{display:grid}.win h2{font-size:30px;margin:0 0 6px}.win p{color:var(--muted);margin:0 0 18px}
+.primary{padding:13px 20px;border-radius:16px;background:linear-gradient(135deg,var(--purple),var(--cyan));font-weight:800;box-shadow:0 10px 28px rgba(71,128,255,.28)}
+.controls{padding:6px 16px 8px;display:flex;gap:8px;justify-content:center}
+.control{min-width:82px;padding:10px 12px;border-radius:15px;background:rgba(255,255,255,.08);border:1px solid var(--line);font-size:12px;font-weight:700}
+.control.on{background:rgba(55,215,255,.15);border-color:rgba(55,215,255,.45)}
+.ad{margin:4px 16px calc(env(safe-area-inset-bottom) + 8px);height:48px;border-radius:15px;border:1px solid rgba(255,255,255,.13);
+background:rgba(4,10,28,.65);display:flex;align-items:center;justify-content:center;gap:9px;color:#91a3ce;font-size:11px}
+.ad strong{color:#d7e2ff;font-size:10px;padding:4px 7px;border-radius:7px;background:rgba(139,92,246,.18)}
+.toast{position:absolute;left:50%;bottom:82px;transform:translateX(-50%) translateY(10px);opacity:0;pointer-events:none;
+background:#eef5ff;color:#0b1635;padding:10px 14px;border-radius:13px;font-weight:800;font-size:12px;transition:.2s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(min-height:820px){.board{width:min(88vw,600px)}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="top">
+    <button class="back" id="back" aria-label="Kembali">‹</button>
+    <div class="brand">PUZZLE JIGSAW</div>
+    <div class="actions">
+      <button class="icon" id="sound" aria-label="Suara">🔊</button>
+      <button class="icon" id="music" aria-label="Musik">♫</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><small>Level</small><b id="level">1</b></div>
+    <div class="stat"><small>Waktu</small><b id="time">00:00</b></div>
+    <div class="stat"><small>Gerakan</small><b id="moves">0</b></div>
+  </div>
+
+  <main class="main">
+    <div class="board" id="board">
+      <div class="grid" id="grid"></div>
+      <div class="win" id="win">
+        <div>
+          <h2>🎉 Selesai!</h2>
+          <p id="winText">Puzzle berhasil disusun.</p>
+          <button class="primary" id="next">Level Berikutnya</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="controls">
+    <button class="control" id="shuffle">🔀 Acak</button>
+    <button class="control" id="pause">⏸ Jeda</button>
+    <button class="control" id="hint">💡 Petunjuk</button>
+  </div>
+
+  <div class="ad"><strong>IKLAN</strong><span>Ruang iklan • siap dihubungkan ke AdMob native APK</span></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id);
+const grid=$('grid'), board=$('board'), toast=$('toast');
+let level=1, size=3, tiles=[], moves=0, seconds=0, timer=null, paused=false, soundOn=true, musicOn=true, audio=null, musicTimer=null;
+
+function showToast(t){toast.textContent=t;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),1400)}
+
+function audioCtx(){
+  if(!audio) audio=new (window.AudioContext||window.webkitAudioContext)();
+  if(audio.state==='suspended') audio.resume();
+  return audio;
+}
+function tone(freq,dur=.07,type='sine',vol=.035){
+  if(!soundOn)return;
+  try{const c=audioCtx(),o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);
+    o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+dur)}catch(e){}
+}
+function startMusic(){
+  if(!musicOn)return;
+  clearInterval(musicTimer);
+  let i=0, notes=[261.63,329.63,392,523.25,392,329.63];
+  musicTimer=setInterval(()=>{if(!paused)tone(notes[i++%notes.length],.12,'triangle',.012)},650);
+}
+function stopMusic(){clearInterval(musicTimer);musicTimer=null}
+function fmt(n){return String(n).padStart(2,'0')}
+function startTimer(){clearInterval(timer);timer=setInterval(()=>{if(!paused){seconds++;$('time').textContent=fmt(Math.floor(seconds/60))+':'+fmt(seconds%60)}},1000)}
+
+function drawScene(ctx,w,h,variant){
+  const g=ctx.createLinearGradient(0,0,w,h); g.addColorStop(0,'#49d9ff');g.addColorStop(.52,'#6574ff');g.addColorStop(1,'#b53cff');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  // sky glow
+  ctx.fillStyle='rgba(255,255,255,.18)'; for(let i=0;i<7;i++){ctx.beginPath();ctx.arc((i*83+variant*17)%w,55+(i%3)*25,18+(i%2)*10,0,Math.PI*2);ctx.fill()}
+  // mountains
+  ctx.fillStyle='#243f88';ctx.beginPath();ctx.moveTo(0,h*.62);ctx.lineTo(w*.25,h*.28);ctx.lineTo(w*.48,h*.6);ctx.lineTo(w*.7,h*.34);ctx.lineTo(w,h*.63);ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#1b2c68';ctx.beginPath();ctx.moveTo(0,h*.74);ctx.lineTo(w*.3,h*.45);ctx.lineTo(w*.55,h*.72);ctx.lineTo(w*.8,h*.48);ctx.lineTo(w,h*.76);ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.fill();
+  // puzzle mascot: colorful circle/face
+  ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(w*.5,h*.55,w*.20,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff7a59';ctx.beginPath();ctx.arc(w*.38,h*.40,w*.08,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff7a59';ctx.beginPath();ctx.arc(w*.62,h*.40,w*.08,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#16224d';ctx.beginPath();ctx.arc(w*.43,h*.54,w*.035,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(w*.57,h*.54,w*.035,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#16224d';ctx.lineWidth=w*.025;ctx.beginPath();ctx.arc(w*.5,h*.55,w*.08,.15*Math.PI,.85*Math.PI);ctx.stroke();
+  // pieces
+  ctx.fillStyle='#37d7ff';ctx.fillRect(w*.08,h*.12,w*.13,w*.13);ctx.fillStyle='#ec4cff';ctx.fillRect(w*.79,h*.18,w*.11,w*.11);
+}
+function makeSource(){
+  const c=document.createElement('canvas');c.width=900;c.height=900;drawScene(c.getContext('2d'),900,900,level);return c;
+}
+function shuffleArray(a){
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+}
+function neighbors(i){
+  const r=Math.floor(i/size),c=i%size,out=[];
+  if(r)out.push(i-size);if(r<size-1)out.push(i+size);if(c)out.push(i-1);if(c<size-1)out.push(i+1);return out;
+}
+function validMove(i){
+  const e=tiles.indexOf(size*size-1);
+  return neighbors(e).includes(i);
+}
+function render(){
+  grid.style.gridTemplateColumns=`repeat(${size},1fr)`;
+  grid.innerHTML='';
+  const source=makeSource(), n=size*size;
+  for(let pos=0;pos<n;pos++){
+    const val=tiles[pos], b=document.createElement('button'); b.className='tile';
+    if(val===n-1){b.classList.add('empty');grid.appendChild(b);continue}
+    const cv=document.createElement('canvas');cv.width=300;cv.height=300;
+    const sx=(val%size)*source.width/size, sy=Math.floor(val/size)*source.height/size, sw=source.width/size, sh=sw;
+    cv.getContext('2d').drawImage(source,sx,sy,sw,sh,0,0,300,300);
+    b.appendChild(cv); b.addEventListener('click',()=>move(pos));grid.appendChild(b);
+  }
+}
+function isSolved(){for(let i=0;i<tiles.length;i++)if(tiles[i]!==i)return false;return true}
+function move(pos){
+  if(paused||!validMove(pos))return;
+  const e=tiles.indexOf(size*size-1);[tiles[e],tiles[pos]]=[tiles[pos],tiles[e]];
+  moves++;$('moves').textContent=moves;tone(420,.055,'sine',.028);render();
+  if(isSolved())win();
+}
+function win(){
+  clearInterval(timer);tone(784,.12,'triangle',.05);setTimeout(()=>tone(988,.16,'triangle',.04),120);
+  $('winText').textContent=`Level ${level} selesai dalam ${fmt(Math.floor(seconds/60))}:${fmt(seconds%60)} dengan ${moves} gerakan.`;
+  $('win').classList.add('show');
+}
+function newGame(){
+  $('win').classList.remove('show');size=level<4?3:4;moves=0;seconds=0;paused=false;
+  $('level').textContent=level;$('moves').textContent='0';$('time').textContent='00:00';$('pause').textContent='⏸ Jeda';
+  tiles=Array.from({length:size*size},(_,i)=>i);
+  // Shuffle by valid empty-tile moves, guaranteeing solvability.
+  let empty=tiles.length-1, last=-1, steps=level<3?35:level<6?65:110;
+  for(let s=0;s<steps;s++){let opts=neighbors(empty).filter(x=>x!==last);let p=opts[Math.floor(Math.random()*opts.length)];
+    [tiles[empty],tiles[p]]=[tiles[p],tiles[empty]];last=empty;empty=p}
+  if(isSolved())return newGame();
+  render();startTimer();startMusic();
+}
+$('shuffle').onclick=()=>{newGame();showToast('Puzzle diacak')};
+$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'▶ Lanjut':'⏸ Jeda';showToast(paused?'Game dijeda':'Game dilanjutkan')};
+$('hint').onclick=()=>{const e=tiles.indexOf(size*size-1), opts=neighbors(e);if(opts.length){const p=opts[Math.floor(Math.random()*opts.length)];
+  const el=grid.children[p];if(el){el.animate([{transform:'scale(1)'},{transform:'scale(.9)'},{transform:'scale(1)'}],{duration:450});tone(660,.12,'sine',.025)}}};
+$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent=soundOn?'🔊':'🔇';if(soundOn)tone(660,.08)};
+$('music').onclick=()=>{musicOn=!musicOn;$('music').textContent=musicOn?'♫':'×';musicOn?startMusic():stopMusic()};
+$('next').onclick=()=>{level++;newGame()};
+$('back').onclick=()=>{if(window.history.length>1)history.back();else window.close()};
+document.addEventListener('visibilitychange',()=>{if(document.hidden){paused=true}});
+document.addEventListener('pointerdown',()=>{try{audioCtx()}catch(e){}},{once:true});
+newGame();
+})();
+</script>
+</body>
+</html>
