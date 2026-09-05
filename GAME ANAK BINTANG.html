@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bintang Ajaib - Game Anak</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Comic Sans MS', 'Bubblegum Sans', 'Segoe UI', cursive, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1c4b 0%, #2e1b4e 50%, #4b1a3d 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 28px;
+            padding: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            color: #ffd166;
+            text-shadow: 0 2px 8px rgba(255, 209, 102, 0.5);
+            margin-bottom: 4px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.8rem;
+            color: #ffd166;
+            padding: 0 4px;
+            font-weight: bold;
+        }
+
+        .canvas-box {
+            width: 100%;
+            aspect-ratio: 3 / 4;
+            background: #0f1026;
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Kontrol Tombol Jempol Khusus HP */
+        .controls-panel {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .control-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #ffd166 0%, #f4a261 100%);
+            color: #1a1c4b;
+            border: none;
+            padding: 14px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(244, 162, 97, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.05s;
+            touch-action: manipulation;
+        }
+
+        .control-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Modal Notifikasi / Menang / Kalah */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #2e1b4e;
+            border: 4px solid #ffd166;
+            padding: 24px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 300px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+
+        .modal-content h2 {
+            font-size: 1.5rem;
+            color: #ffd166;
+            margin-bottom: 8px;
+        }
+
+        .modal-content p {
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-btn {
+            background: linear-gradient(135deg, #06d6a0 0%, #118ab2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 14px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 6px 15px rgba(6, 214, 160, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <header>
+            <h1>🌟 Bintang Ajaib 🌙</h1>
+            <div class="stats">
+                <span>Level: <b id="level-display">1</b> / 10</span>
+                <span>Skor: <b id="score-display">0</b> / <b id="target-display">10</b></span>
+                <span>Nyawa: <b id="lives-display">❤️❤️❤️</b></span>
+            </div>
+        </header>
+
+        <div class="canvas-box">
+            <canvas id="gameCanvas" width="300" height="400"></canvas>
+        </div>
+
+        <div class="controls-panel">
+            <button class="control-btn" ontouchstart="movePlayer(-1)" onmousedown="movePlayer(-1)">◀ KIRI</button>
+            <button class="control-btn" ontouchstart="movePlayer(1)" onmousedown="movePlayer(1)">KANAN ▶</button>
+        </div>
+    </div>
+
+    <!-- Modal Pesan -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Hebat Sekali! 🎉</h2>
+            <p id="modal-text">Kamu berhasil menangkap banyak bintang!</p>
+            <button class="modal-btn" id="modal-btn" onclick="nextLevel()">Lanjut Level 🚀</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Konfigurasi 10 Level Bertahap
+        const levels = [
+            { level: 1, target: 10, speed: 2.0, spawnRate: 70 },
+            { level: 2, target: 15, speed: 2.5, spawnRate: 60 },
+            { level: 3, target: 20, speed: 3.0, spawnRate: 55 },
+            { level: 4, target: 25, speed: 3.5, spawnRate: 50 },
+            { level: 5, target: 30, speed: 4.0, spawnRate: 45 },
+            { level: 6, target: 35, speed: 4.5, spawnRate: 40 },
+            { level: 7, target: 40, speed: 5.0, spawnRate: 35 },
+            { level: 8, target: 45, speed: 5.5, spawnRate: 30 },
+            { level: 9, target: 50, speed: 6.0, spawnRate: 25 },
+            { level: 10, target: 60, speed: 6.8, spawnRate: 20 }
+        ];
+
+        let currentLevelIdx = 0;
+        let score = 0;
+        let targetScore = 10;
+        let lives = 3;
+        let itemSpeed = 2.0;
+        let spawnRate = 70;
+        let frameCount = 0;
+
+        // Posisi Keranjang / Karakter (Pemain)
+        let player = { x: 130, y: 340, width: 50, height: 35 };
+        let items = [];
+        let isPlaying = false;
+
+        const levelDisplay = document.getElementById('level-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const targetDisplay = document.getElementById('target-display');
+        const livesDisplay = document.getElementById('lives-display');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalText = document.getElementById('modal-text');
+        const modalBtn = document.getElementById('modal-btn');
+
+        function initLevel() {
+            const cfg = levels[currentLevelIdx];
+            targetScore = cfg.target;
+            itemSpeed = cfg.speed;
+            spawnRate = cfg.spawnRate;
+            score = 0;
+            lives = 3;
+            items = [];
+            frameCount = 0;
+
+            levelDisplay.innerText = cfg.level;
+            scoreDisplay.innerText = score;
+            targetDisplay.innerText = targetScore;
+            updateLivesDisplay();
+
+            isPlaying = true;
+            loop();
+        }
+
+        function movePlayer(dir) {
+            if (!isPlaying) return;
+            player.x += dir * 25;
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+        }
+
+        function spawnItem() {
+            // 75% Bintang/Buah (poin), 25% Awan Badai (kurangi nyawa)
+            let type = Math.random() < 0.75 ? 'star' : 'cloud';
+            let icons = type === 'star' ? ['⭐', '🍎', '🍌', '🍬'] : ['☁️', '⚡'];
+            let icon = icons[Math.floor(Math.random() * icons.length)];
+
+            let x = Math.random() * (canvas.width - 30);
+            items.push({ x: x, y: -30, size: 28, type: type, icon: icon });
+        }
+
+        function update() {
+            if (!isPlaying) return;
+            frameCount++;
+
+            if (frameCount % spawnRate === 0) {
+                spawnItem();
+            }
+
+            // Gerakkan item ke bawah
+            for (let i = items.length - 1; i >= 0; i--) {
+                items[i].y += itemSpeed;
+
+                // Cek tabrakan dengan keranjang pemain
+                let p = player;
+                let it = items[i];
+
+                if (it.x < p.x + p.width && it.x + it.size > p.x &&
+                    it.y < p.y + p.height && it.y + it.size > p.y) {
+                    
+                    if (it.type === 'star') {
+                        score++;
+                        scoreDisplay.innerText = score;
+                        if (score >= targetScore) {
+                            isPlaying = false;
+                            showWinModal();
+                            return;
+                        }
+                    } else {
+                        // Kena awan badai
+                        lives--;
+                        updateLivesDisplay();
+                        if (lives <= 0) {
+                            isPlaying = false;
+                            showGameOverModal();
+                            return;
+                        }
+                    }
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // Hapus item jika jatuh lewat bawah layar
+                if (it.y > canvas.height) {
+                    items.splice(i, 1);
+                }
+            }
+        }
+
+        function updateLivesDisplay() {
+            livesDisplay.innerText = '❤️'.repeat(lives);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Gambar latar belakang bintang-bintang kecil
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(50, 80, 2, 2);
+            ctx.fillRect(150, 40, 3, 3);
+            ctx.fillRect(240, 120, 2, 2);
+            ctx.fillRect(80, 220, 3, 3);
+
+            // Gambar Keranjang Pemain (UFO / Keranjang Lucu 🧺)
+            ctx.font = '32px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🧺', player.x + player.width / 2, player.y + 26);
+
+            // Gambar Item Berjatuhan
+            for (let it of items) {
+                ctx.fillText(it.icon, it.x + it.size / 2, it.y + 22);
+            }
+        }
+
+        function loop() {
+            if (!isPlaying) return;
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        function showWinModal() {
+            if (currentLevelIdx < levels.length - 1) {
+                modalTitle.innerText = "Luar Biasa! 🎉";
+                modalText.innerText = `Kamu berhasil menyelesaikan Level ${levels[currentLevelIdx].level}!`;
+                modalBtn.innerText = "Lanjut Level Berikutnya 🚀";
+                modalBtn.onclick = nextLevel;
+            } else {
+                modalTitle.innerText = "Juara Bintang! 🏆";
+                modalText.innerText = "Hebat sekali! Kamu telah menamatkan seluruh 10 level game ini!";
+                modalBtn.innerText = "Main Dari Awal 🎈";
+                modalBtn.onclick = restartFromBeginning;
+            }
+            modal.classList.add('show');
+        }
+
+        function showGameOverModal() {
+            modalTitle.innerText = "Aduh, Kena Badai! 🌧️";
+            modalText.innerText = `Nyawamu habis di skor ${score}. Coba lagi ya!`;
+            modalBtn.innerText = "Coba Lagi 🔄";
+            modalBtn.onclick = restartLevel;
+            modal.classList.add('show');
+        }
+
+        function nextLevel() {
+            modal.classList.remove('show');
+            currentLevelIdx++;
+            initLevel();
+        }
+
+        function restartLevel() {
+            modal.classList.remove('show');
+            initLevel();
+        }
+
+        function restartFromBeginning() {
+            modal.classList.remove('show');
+            currentLevelIdx = 0;
+            initLevel();
+        }
+
+        // Kontrol tambahan keyboard untuk PC
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') movePlayer(-1);
+            if (e.key === 'ArrowRight' || e.key === 'd') movePlayer(1);
+        });
+
+        // Jalankan game saat pertama kali dimuat
+        initLevel();
+    </script>
+</body>
+</html>
