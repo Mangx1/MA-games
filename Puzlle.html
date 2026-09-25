@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Puzzle Ceria Balita</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #E1F5FE 0%, #FFF9C4 100%);
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            padding-top: calc(var(--sat) + 6px);
+            padding-bottom: calc(var(--sab) + 55px); /* Safe zone navigasi HP */
+            padding-left: calc(var(--sal) + 10px);
+            padding-right: calc(var(--sar) + 10px);
+        }
+
+        /* 1. Header UI */
+        #header {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pill-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #0288D1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 2px solid #FFF;
+        }
+
+        .home-btn {
+            background: #FFD166;
+            border: 2px solid #FFF;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 17px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        /* 2. Controls Atas */
+        #controls-box {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 10px;
+            margin-top: 2px;
+        }
+
+        .ctrl-btn {
+            flex: 1;
+            background: #FF7043;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 8px 12px;
+            border-radius: 22px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .ctrl-btn.secondary {
+            background: #00BFA5;
+        }
+
+        .ctrl-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 3. Papan Puzzle Target (2x2 Grid dengan Bayangan Gambar) */
+        #puzzle-board-wrapper {
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 260px;
+            aspect-ratio: 1 / 1;
+            border-radius: 22px;
+            padding: 8px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            border: 5px solid #FFD166;
+            position: relative;
+        }
+
+        #puzzle-board {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 4px;
+            background: #F0F4F8;
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .board-slot {
+            border: 2px dashed #B0BEC5;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        /* Bayangan Gambar Samar (Hint Transparan) */
+        .slot-hint {
+            width: 200%;
+            height: 200%;
+            position: absolute;
+            opacity: 0.28; /* Transparan agar mudah dicocokkan */
+            pointer-events: none;
+            filter: grayscale(30%);
+        }
+
+        /* Efek Glow Menyala saat Potongan Dipilih */
+        .board-slot.target-glow {
+            border: 3px solid #00E676 !important;
+            box-shadow: inset 0 0 15px #00E676;
+            animation: pulseGlow 0.8s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { background-color: rgba(0, 230, 118, 0.15); }
+            100% { background-color: rgba(0, 230, 118, 0.45); }
+        }
+
+        .board-slot.filled {
+            border: none;
+            background: transparent;
+        }
+
+        /* 4. Bank Potongan Puzzle Bawah */
+        #piece-bank-wrapper {
+            width: 100%;
+            max-width: 360px;
+            background: #FFFFFF;
+            padding: 10px;
+            border-radius: 22px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+            border: 3px solid #FFF;
+        }
+
+        .bank-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #0288D1;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        #piece-bank {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .puzzle-piece {
+            aspect-ratio: 1 / 1;
+            background: #FFFFFF;
+            border: 3px solid #0288D1;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .puzzle-piece.selected {
+            transform: scale(1.15);
+            border-color: #00E676 !important;
+            border-width: 4px;
+            box-shadow: 0 0 12px #00E676;
+            z-index: 20;
+        }
+
+        /* Cropper Kuadran SVG (0: TL, 1: TR, 2: BL, 3: BR) */
+        .piece-inner {
+            width: 200%;
+            height: 200%;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .quad-0 { top: 0%; left: 0%; }
+        .quad-1 { top: 0%; left: -100%; }
+        .quad-2 { top: -100%; left: 0%; }
+        .quad-3 { top: -100%; left: -100%; }
+
+        /* Overlays (Start & Ending) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(225, 245, 254, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+        }
+
+        .overlay-card {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 5px solid #FFD166;
+            width: 92%;
+            max-width: 360px;
+        }
+
+        .title {
+            font-size: 26px;
+            color: #0288D1;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 18px;
+        }
+
+        .menu-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .level-btn {
+            background: #FF4081;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 12px 16px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .level-btn:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header -->
+    <div id="header">
+        <button class="home-btn" id="homeBtn" title="Menu Utama">🏠 Menu</button>
+        <div class="pill-box" id="levelDisplay">Lvl 1: Kucing</div>
+        <div class="pill-box" id="starDisplay">⭐ 0</div>
+    </div>
+
+    <!-- Controls Atas -->
+    <div id="controls-box">
+        <button class="ctrl-btn" id="resetBtn">🔄 Ulang Gambar</button>
+        <button class="ctrl-btn secondary" id="speakBtn">🔊 Dengar Nama</button>
+    </div>
+
+    <!-- Papan Puzzle Target (2x2) -->
+    <div id="puzzle-board-wrapper">
+        <div id="puzzle-board">
+            <div class="board-slot" data-slot="0"></div>
+            <div class="board-slot" data-slot="1"></div>
+            <div class="board-slot" data-slot="2"></div>
+            <div class="board-slot" data-slot="3"></div>
+        </div>
+    </div>
+
+    <!-- Bank Potongan Puzzle Bawah -->
+    <div id="piece-bank-wrapper">
+        <div class="bank-title">👇 Sentuh Potongan Lalu Pasang di Atas 👇</div>
+        <div id="piece-bank"></div>
+    </div>
+
+    <!-- Screen Menu Pilih Level (1-10) -->
+    <div id="start-overlay" class="overlay">
+        <div class="overlay-card">
+            <div style="font-size: 55px; margin-bottom: 5px;">🧩 Puzzle Ceria 🧩</div>
+            <div class="title">Pilih Level</div>
+            <div class="subtitle">Pasang 4 potongan puzzle sampai utuh!</div>
+            
+            <div class="menu-btn-group" id="levelBtnContainer"></div>
+        </div>
+    </div>
+
+    <!-- Screen Kemenangan Level -->
+    <div id="win-overlay" class="overlay hidden">
+        <div class="overlay-card">
+            <div style="font-size: 60px; margin-bottom: 8px;">🏆</div>
+            <div class="title" style="color: #00BFA5;" id="winTitle">PUZZLE SELESAI!</div>
+            <div class="subtitle" id="winSubtitle">Pintar sekali, puzzlenya sudah utuh kembali! 🎉</div>
+            
+            <div class="menu-btn-group">
+                <button class="level-btn" id="nextLevelBtn" style="justify-content: center;">PUZZLE SELANJUTNYA ➡️</button>
+                <button class="level-btn" id="winHomeBtn" style="background: #0288D1; justify-content: center;">MENU UTAMA 🏠</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Data 10 Gambar SVG
+    const levelsData = [
+        { level: 1, name: 'Kucing Lucu', icon: '🐱', svg: `
+            <svg viewBox="0 0 200 200" style="background:#FFF9C4; width:100%; height:100%;">
+                <path fill="#FF9F1C" stroke="#333" stroke-width="6" d="M30,40 L70,80 L20,110 Z"/>
+                <path fill="#FF9F1C" stroke="#333" stroke-width="6" d="M170,40 L130,80 L180,110 Z"/>
+                <circle fill="#FFD166" stroke="#333" stroke-width="6" cx="100" cy="115" r="65"/>
+                <polygon fill="#FF4081" stroke="#333" stroke-width="4" points="100,120 90,110 110,110"/>
+                <circle fill="#333" cx="70" cy="95" r="8"/>
+                <circle fill="#333" cx="130" cy="95" r="8"/>
+                <path stroke="#333" stroke-width="4" d="M50,115 L20,110 M50,125 L15,125 M150,115 L180,110 M150,125 L185,125"/>
+            </svg>`
+        },
+        { level: 2, name: 'Mobil Ceria', icon: '🚗', svg: `
+            <svg viewBox="0 0 200 200" style="background:#E1F5FE; width:100%; height:100%;">
+                <path fill="#FF4D4D" stroke="#333" stroke-width="6" d="M25,120 L48,70 L130,70 L160,120 L185,120 Q192,120 192,128 L192,155 L8,155 L8,128 Q8,120 15,120 Z"/>
+                <path fill="#E0F7FA" stroke="#333" stroke-width="5" d="M55,78 L88,78 L88,115 L42,115 Z"/>
+                <path fill="#E0F7FA" stroke="#333" stroke-width="5" d="M96,78 L125,78 L142,115 L96,115 Z"/>
+                <circle fill="#333" cx="50" cy="155" r="22"/>
+                <circle fill="#FFF" cx="50" cy="155" r="9"/>
+                <circle fill="#333" cx="148" cy="155" r="22"/>
+                <circle fill="#FFF" cx="148" cy="155" r="9"/>
+            </svg>`
+        },
+        { level: 3, name: 'Rumahku', icon: '🏠', svg: `
+            <svg viewBox="0 0 200 200" style="background:#E8F5E9; width:100%; height:100%;">
+                <polygon points="100,25 20,85 180,85" fill="#FF7043" stroke="#333" stroke-width="6"/>
+                <rect x="35" y="85" width="130" height="95" fill="#FFF" stroke="#333" stroke-width="6"/>
+                <rect x="85" y="120" width="30" height="60" fill="#8D6E63" stroke="#333" stroke-width="5"/>
+                <rect x="50" y="100" width="25" height="25" fill="#FFD166" stroke="#333" stroke-width="5"/>
+                <rect x="125" y="100" width="25" height="25" fill="#FFD166" stroke="#333" stroke-width="5"/>
+            </svg>`
+        },
+        { level: 4, name: 'Apel Segar', icon: '🍎', svg: `
+            <svg viewBox="0 0 200 200" style="background:#FFF3E0; width:100%; height:100%;">
+                <path fill="#4CAF50" stroke="#333" stroke-width="5" d="M100,55 Q125,20 145,45 Q120,65 100,55 Z"/>
+                <path fill="#795548" stroke="#333" stroke-width="5" d="M100,55 Q95,30 90,20 L100,20 Z"/>
+                <path fill="#FF3D00" stroke="#333" stroke-width="6" d="M100,70 C70,50 30,75 30,115 C30,165 80,185 100,185 C120,185 170,165 170,115 C170,75 130,50 100,70 Z"/>
+            </svg>`
+        },
+        { level: 5, name: 'Ikan Berenang', icon: '🐟', svg: `
+            <svg viewBox="0 0 200 200" style="background:#E0F7FA; width:100%; height:100%;">
+                <path fill="#FF4081" stroke="#333" stroke-width="6" d="M135,100 L180,60 L170,100 L180,140 Z"/>
+                <path fill="#00E676" stroke="#333" stroke-width="6" d="M140,100 C100,50 40,70 20,100 C40,130 100,150 140,100 Z"/>
+                <path fill="#FFD166" stroke="#333" stroke-width="5" d="M70,72 Q90,30 110,65 Z"/>
+                <path fill="#FFD166" stroke="#333" stroke-width="5" d="M70,128 Q90,170 110,135 Z"/>
+                <circle fill="#FFF" stroke="#333" stroke-width="4" cx="50" cy="90" r="9"/>
+                <circle fill="#333" cx="48" cy="90" r="4"/>
+            </svg>`
+        },
+        { level: 6, name: 'Es Krim Lezat', icon: '🍦', svg: `
+            <svg viewBox="0 0 200 200" style="background:#FCE4EC; width:100%; height:100%;">
+                <polygon points="100,190 60,115 140,115" fill="#FFB74D" stroke="#333" stroke-width="6"/>
+                <path fill="#FF4081" stroke="#333" stroke-width="6" d="M55,115 C45,95 55,70 80,70 C85,55 115,55 120,70 C145,70 155,95 145,115 Z"/>
+                <circle fill="#D50000" stroke="#333" stroke-width="5" cx="100" cy="48" r="18"/>
+            </svg>`
+        },
+        { level: 7, name: 'Bunga Indah', icon: '🌸', svg: `
+            <svg viewBox="0 0 200 200" style="background:#F3E5F5; width:100%; height:100%;">
+                <rect x="96" y="105" width="8" height="80" fill="#4CAF50" stroke="#333" stroke-width="4"/>
+                <path fill="#81C784" stroke="#333" stroke-width="4" d="M104,140 Q135,120 140,150 Q110,160 104,140 Z"/>
+                <circle fill="#FFD166" stroke="#333" stroke-width="6" cx="100" cy="63" r="18"/>
+                <circle fill="#FF80AB" stroke="#333" stroke-width="5" cx="100" cy="30" r="16"/>
+                <circle fill="#FF80AB" stroke="#333" stroke-width="5" cx="133" cy="63" r="16"/>
+                <circle fill="#FF80AB" stroke="#333" stroke-width="5" cx="100" cy="96" r="16"/>
+                <circle fill="#FF80AB" stroke="#333" stroke-width="5" cx="67" cy="63" r="16"/>
+            </svg>`
+        },
+        { level: 8, name: 'Roket Keren', icon: '🚀', svg: `
+            <svg viewBox="0 0 200 200" style="background:#EDE7F6; width:100%; height:100%;">
+                <polygon points="100,160 80,190 120,190" fill="#FFAB00" stroke="#333" stroke-width="5"/>
+                <path fill="#29B6F6" stroke="#333" stroke-width="6" d="M70,80 Q70,20 100,20 Q130,20 130,80 L130,160 L70,160 Z"/>
+                <path fill="#FF1744" stroke="#333" stroke-width="5" d="M70,110 L45,160 L70,160 Z"/>
+                <path fill="#FF1744" stroke="#333" stroke-width="5" d="M130,110 L155,160 L130,160 Z"/>
+                <circle fill="#FFF" stroke="#333" stroke-width="5" cx="100" cy="80" r="16"/>
+            </svg>`
+        },
+        { level: 9, name: 'Kapal Laut', icon: '⛵', svg: `
+            <svg viewBox="0 0 200 200" style="background:#E0F2F1; width:100%; height:100%;">
+                <rect x="97" y="30" width="6" height="110" fill="#795548" stroke="#333" stroke-width="4"/>
+                <polygon points="103,35 165,85 103,85" fill="#FF5252" stroke="#333" stroke-width="5"/>
+                <polygon points="97,45 40,95 97,95" fill="#FFD54F" stroke="#333" stroke-width="5"/>
+                <path fill="#0288D1" stroke="#333" stroke-width="6" d="M25,135 L175,135 L150,175 L50,175 Z"/>
+            </svg>`
+        },
+        { level: 10, name: 'Beruang Comel', icon: '🐻', svg: `
+            <svg viewBox="0 0 200 200" style="background:#FFF8E1; width:100%; height:100%;">
+                <circle fill="#8D6E63" stroke="#333" stroke-width="5" cx="45" cy="55" r="25"/>
+                <circle fill="#FFCC80" stroke="#333" stroke-width="4" cx="45" cy="55" r="14"/>
+                <circle fill="#8D6E63" stroke="#333" stroke-width="5" cx="155" cy="55" r="25"/>
+                <circle fill="#FFCC80" stroke="#333" stroke-width="4" cx="155" cy="55" r="14"/>
+                <circle fill="#A1887F" stroke="#333" stroke-width="6" cx="100" cy="115" r="65"/>
+                <ellipse fill="#FFCC80" stroke="#333" stroke-width="4" cx="100" cy="125" rx="30" ry="22"/>
+                <ellipse fill="#333" cx="100" cy="115" rx="10" ry="7"/>
+                <circle fill="#333" cx="70" cy="95" r="7"/>
+                <circle fill="#333" cx="130" cy="95" r="7"/>
+            </svg>`
+        }
+    ];
+
+    let currentLevelIdx = 0;
+    let stars = 0;
+    let boardState = [null, null, null, null];
+    let bankPieces = [];
+    let selectedPieceId = null;
+
+    let audioCtx = null;
+
+    const boardSlots = document.querySelectorAll('.board-slot');
+    const pieceBank = document.getElementById('piece-bank');
+
+    const startOverlay = document.getElementById('start-overlay');
+    const winOverlay = document.getElementById('win-overlay');
+    const levelBtnContainer = document.getElementById('levelBtnContainer');
+    const levelDisplay = document.getElementById('levelDisplay');
+    const starDisplay = document.getElementById('starDisplay');
+
+    const resetBtn = document.getElementById('resetBtn');
+    const speakBtn = document.getElementById('speakBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    const winHomeBtn = document.getElementById('winHomeBtn');
+    const winTitle = document.getElementById('winTitle');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSnapSound() {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+        } catch (e) {}
+    }
+
+    function playSelectSound() {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+        } catch (e) {}
+    }
+
+    function playWinFanfare() {
+        if (!audioCtx) return;
+        try {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const startTime = audioCtx.currentTime + (idx * 0.12);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.4, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.35);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(startTime); osc.stop(startTime + 0.35);
+            });
+        } catch (e) {}
+    }
+
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.88;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function speakPraise(onComplete) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const text = "Hore! Puzzlenya sudah selesai! Kamu pintar sekali!";
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.88;
+
+            let isCalled = false;
+            const finish = () => {
+                if (!isCalled) {
+                    isCalled = true;
+                    if (onComplete) onComplete();
+                }
+            };
+
+            utterance.onend = finish;
+            utterance.onerror = finish;
+            window.speechSynthesis.speak(utterance);
+            setTimeout(finish, 2200);
+        } else {
+            if (onComplete) setTimeout(onComplete, 1000);
+        }
+    }
+
+    function setupLevel(idx) {
+        currentLevelIdx = idx;
+        boardState = [null, null, null, null];
+        selectedPieceId = null;
+
+        const lvl = levelsData[idx];
+        levelDisplay.innerText = `Lvl ${lvl.level}: ${lvl.name}`;
+        starDisplay.innerText = `⭐ ${stars}`;
+
+        const svgStr = lvl.svg;
+
+        // Reset & Pasang Bayangan Hint Gambar pada Papan
+        boardSlots.forEach(slot => {
+            const slotIdx = slot.dataset.slot;
+            slot.className = 'board-slot';
+            slot.innerHTML = `<div class="slot-hint quad-${slotIdx}">${svgStr}</div>`;
+        });
+
+        // Acak 4 Potongan
+        bankPieces = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+
+        renderBank();
+        setTimeout(() => speakText(`Pasang puzzle ${lvl.name}`), 200);
+    }
+
+    function updateSlotHighlights() {
+        boardSlots.forEach(slot => {
+            const sIdx = parseInt(slot.dataset.slot);
+            slot.classList.remove('target-glow');
+
+            // Jika ada potongan dipilih dan slot ini adalah tujuannya
+            if (selectedPieceId !== null && selectedPieceId === sIdx && !slot.classList.contains('filled')) {
+                slot.classList.add('target-glow');
+            }
+        });
+    }
+
+    function renderBank() {
+        pieceBank.innerHTML = '';
+        const svgStr = levelsData[currentLevelIdx].svg;
+
+        bankPieces.forEach(pId => {
+            const piece = document.createElement('div');
+            piece.className = 'puzzle-piece' + (selectedPieceId === pId ? ' selected' : '');
+            piece.dataset.pieceId = pId;
+
+            piece.innerHTML = `<div class="piece-inner quad-${pId}">${svgStr}</div>`;
+
+            // TAP UNTUK MEMILIH POTONGAN
+            piece.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                initAudio();
+                playSelectSound();
+
+                if (selectedPieceId === pId) {
+                    selectedPieceId = null;
+                } else {
+                    selectedPieceId = pId;
+                }
+                renderBank();
+                updateSlotHighlights();
+            });
+
+            pieceBank.appendChild(piece);
+        });
+
+        updateSlotHighlights();
+    }
+
+    // Klik Slot Papan Target
+    boardSlots.forEach(slot => {
+        slot.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            initAudio();
+            const slotIdx = parseInt(slot.dataset.slot);
+
+            // Jika anak menekan slot yang pas dengan potongan yang dipilih
+            if (selectedPieceId !== null && selectedPieceId === slotIdx && !slot.classList.contains('filled')) {
+                placePiece(selectedPieceId, slotIdx, slot);
+            }
+        });
+    });
+
+    function placePiece(pieceId, slotIdx, slotElem) {
+        playSnapSound();
+        boardState[slotIdx] = pieceId;
+
+        // Pasang Gambar Utuh di Slot
+        const svgStr = levelsData[currentLevelIdx].svg;
+        slotElem.innerHTML = `<div class="piece-inner quad-${pieceId}">${svgStr}</div>`;
+        slotElem.classList.add('filled');
+        slotElem.classList.remove('target-glow');
+
+        // Hapus dari bank
+        bankPieces = bankPieces.filter(id => id !== pieceId);
+        selectedPieceId = null;
+
+        renderBank();
+        checkPuzzleCompletion();
+    }
+
+    function checkPuzzleCompletion() {
+        const isComplete = boardState.every((val, idx) => val === idx);
+
+        if (isComplete) {
+            playWinFanfare();
+
+            stars += 10;
+            starDisplay.innerText = `⭐ ${stars}`;
+
+            speakPraise(() => {
+                winOverlay.classList.remove('hidden');
+                if (currentLevelIdx < levelsData.length - 1) {
+                    winTitle.innerText = "PUZZLE SELESAI!";
+                    nextLevelBtn.style.display = "flex";
+                } else {
+                    winTitle.innerText = "🏆 SELAMAT! TAMAT! 🏆";
+                    nextLevelBtn.style.display = "none";
+                }
+            });
+        }
+    }
+
+    function renderLevelMenu() {
+        levelBtnContainer.innerHTML = '';
+        levelsData.forEach((lvl, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'level-btn';
+            btn.innerHTML = `<span>Lvl ${lvl.level}: ${lvl.name}</span> <span>${lvl.icon}</span>`;
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                startLevel(idx);
+            });
+            levelBtnContainer.appendChild(btn);
+        });
+    }
+
+    function startLevel(idx) {
+        initAudio();
+        startOverlay.classList.add('hidden');
+        winOverlay.classList.add('hidden');
+        setupLevel(idx);
+    }
+
+    function showMainMenu() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        startOverlay.classList.remove('hidden');
+        winOverlay.classList.add('hidden');
+    }
+
+    // Controls Event Listeners
+    resetBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); setupLevel(currentLevelIdx); });
+    speakBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); speakText(levelsData[currentLevelIdx].name); });
+
+    homeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+    winHomeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+
+    nextLevelBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (currentLevelIdx < levelsData.length - 1) {
+            startLevel(currentLevelIdx + 1);
+        }
+    });
+
+    // Initial Setup
+    renderLevelMenu();
+</script>
+</body>
+</html>

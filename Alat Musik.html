@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Studio Musik Ceria</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FFF3E0 0%, #E1F5FE 100%);
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: calc(var(--sat) + 8px);
+            padding-bottom: calc(var(--sab) + 50px);
+            padding-left: calc(var(--sal) + 12px);
+            padding-right: calc(var(--sar) + 12px);
+        }
+
+        /* 1. Tab Bar Pilihan Alat Musik */
+        #instrument-tabs {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: #FFFFFF;
+            border: 3px solid #FFF;
+            padding: 10px 4px;
+            border-radius: 22px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #555;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .tab-btn.active {
+            background: #FF4081;
+            color: #FFFFFF;
+            border-color: #FF80AB;
+            box-shadow: 0 6px 15px rgba(255, 64, 129, 0.3);
+            transform: scale(1.03);
+        }
+
+        /* 2. Main View Frame */
+        #view-container {
+            width: 100%;
+            max-width: 400px;
+            flex: 1;
+            background: #FFFFFF;
+            border-radius: 25px;
+            border: 5px solid #FFD166;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            margin: 8px 0;
+            padding: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .instrument-view {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .instrument-view.active {
+            display: flex;
+        }
+
+        /* ================= 1. PIANO TOY (LEBAR & MUDAH DITEKAN) ================= */
+        #piano-frame {
+            width: 100%;
+            height: 100%;
+            background: #FF4081;
+            border-radius: 20px;
+            padding: 10px 6px 6px 6px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 3px 6px rgba(255,255,255,0.4), 0 6px 15px rgba(0,0,0,0.15);
+            border: 3px solid #F50057;
+        }
+
+        .piano-top-bar {
+            height: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            color: #FFF;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        #piano-keys-wrapper {
+            flex: 1;
+            display: flex;
+            gap: 4px;
+            width: 100%;
+        }
+
+        .toy-key {
+            flex: 1;
+            height: 100%;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.8);
+            box-shadow: inset 0 -8px 0 rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 16px;
+            cursor: pointer;
+            transition: transform 0.08s ease;
+        }
+
+        .toy-key:active, .toy-key.active {
+            transform: translateY(6px);
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+        }
+
+        .key-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFF;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .key-num {
+            font-size: 13px;
+            color: rgba(255,255,255,0.9);
+            font-weight: bold;
+        }
+
+        /* ================= 2. DRUM BULAT PRESISI (2x2 GRID) ================= */
+        #drum-grid {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 14px;
+            padding: 5px;
+            align-items: center;
+            justify-items: center;
+        }
+
+        .drum-pad-circle {
+            width: 100%;
+            max-width: 150px;
+            aspect-ratio: 1 / 1; /* Memastikan LINGKARAN SEMPURNA */
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8px 0px rgba(0,0,0,0.15), 0 10px 18px rgba(0,0,0,0.12);
+            border: 6px solid #FFF;
+            cursor: pointer;
+            transition: transform 0.08s ease;
+        }
+
+        .drum-pad-circle:active, .drum-pad-circle.hit {
+            transform: scale(0.92);
+            box-shadow: 0 2px 0px rgba(0,0,0,0.15);
+        }
+
+        .drum-icon {
+            font-size: 38px;
+        }
+
+        .drum-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 2px;
+            background: rgba(255,255,255,0.85);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        /* ================= 3. SERULING BAR KAPSUL LEBAR ================= */
+        #flute-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            background: #EFEBE9;
+            border-radius: 20px;
+            padding: 10px;
+            border: 3px solid #D7CCC8;
+        }
+
+        .flute-bar {
+            width: 95%;
+            height: 48px;
+            background: #FFFFFF;
+            border-radius: 25px;
+            border: 3px solid #8D6E63;
+            box-shadow: 0 4px 0px #BCAAA4, 0 5px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            cursor: pointer;
+            transition: transform 0.08s ease, background-color 0.15s ease;
+        }
+
+        .flute-bar:active, .flute-bar.active {
+            transform: translateY(3px);
+            background: #FFE082 !important;
+            border-color: #FFB300 !important;
+            box-shadow: 0 1px 0px #BCAAA4;
+        }
+
+        .flute-text {
+            font-size: 17px;
+            font-weight: bold;
+            color: #4E342E;
+        }
+
+        .flute-hole-dot {
+            width: 22px;
+            height: 22px;
+            background: #4E342E;
+            border-radius: 50%;
+            border: 2px solid #8D6E63;
+        }
+
+        /* Partikel Musik */
+        .note-particle {
+            position: absolute;
+            font-size: 32px;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 50;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(0.8); }
+            100% { opacity: 0; transform: translateY(-70px) scale(1.4); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header Tab Pilihan Alat Musik -->
+    <div id="instrument-tabs">
+        <button class="tab-btn active" id="tabPiano">🎹 Piano</button>
+        <button class="tab-btn" id="tabDrum">🥁 Drum</button>
+        <button class="tab-btn" id="tabFlute">🪈 Seruling</button>
+    </div>
+
+    <!-- Frame Tampilan Alat Musik -->
+    <div id="view-container">
+        
+        <!-- 1. PIANO TOY VIEW -->
+        <div class="instrument-view active" id="viewPiano">
+            <div id="piano-frame">
+                <div class="piano-top-bar">
+                    <span>🎼 PIANO CERIA</span>
+                    <span>🎵 8 NADA</span>
+                </div>
+                <div id="piano-keys-wrapper">
+                    <div class="toy-key" style="background:#FF5252;" data-freq="261.63"><span class="key-text">Do</span><span class="key-num">1</span></div>
+                    <div class="toy-key" style="background:#FF7043;" data-freq="293.66"><span class="key-text">Re</span><span class="key-num">2</span></div>
+                    <div class="toy-key" style="background:#FFCA28;" data-freq="329.63"><span class="key-text">Mi</span><span class="key-num">3</span></div>
+                    <div class="toy-key" style="background:#66BB6A;" data-freq="349.23"><span class="key-text">Fa</span><span class="key-num">4</span></div>
+                    <div class="toy-key" style="background:#26A69A;" data-freq="392.00"><span class="key-text">Sol</span><span class="key-num">5</span></div>
+                    <div class="toy-key" style="background:#29B6F6;" data-freq="440.00"><span class="key-text">La</span><span class="key-num">6</span></div>
+                    <div class="toy-key" style="background:#AB47BC;" data-freq="493.88"><span class="key-text">Si</span><span class="key-num">7</span></div>
+                    <div class="toy-key" style="background:#EC407A;" data-freq="523.25"><span class="key-text">Do</span><span class="key-num">1̇</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. DRUM BULAT VIEW -->
+        <div class="instrument-view" id="viewDrum">
+            <div id="drum-grid">
+                <!-- Cymbal -->
+                <div class="drum-pad-circle" style="background:#FFD54F; border-color:#FFB300;" data-type="hihat">
+                    <span class="drum-icon">🪙</span>
+                    <span class="drum-name">Cymbal</span>
+                </div>
+                <!-- Tom Drum -->
+                <div class="drum-pad-circle" style="background:#4FC3F7; border-color:#0288D1;" data-type="tom">
+                    <span class="drum-icon">🥁</span>
+                    <span class="drum-name">Tom Drum</span>
+                </div>
+                <!-- Snare -->
+                <div class="drum-pad-circle" style="background:#FF8A65; border-color:#E64A19;" data-type="snare">
+                    <span class="drum-icon">🪘</span>
+                    <span class="drum-name">Snare</span>
+                </div>
+                <!-- Bass Drum -->
+                <div class="drum-pad-circle" style="background:#E0E0E0; border-color:#616161;" data-type="kick">
+                    <span class="drum-icon">🔴</span>
+                    <span class="drum-name">Bass Drum</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. SERULING BAR VIEW -->
+        <div class="instrument-view" id="viewFlute">
+            <div id="flute-container">
+                <div class="flute-bar" data-freq="261.63"><span class="flute-text">🪈 Nada Do (1)</span><div class="flute-hole-dot"></div></div>
+                <div class="flute-bar" data-freq="293.66"><span class="flute-text">🪈 Nada Re (2)</span><div class="flute-hole-dot"></div></div>
+                <div class="flute-bar" data-freq="329.63"><span class="flute-text">🪈 Nada Mi (3)</span><div class="flute-hole-dot"></div></div>
+                <div class="flute-bar" data-freq="349.23"><span class="flute-text">🪈 Nada Fa (4)</span><div class="flute-hole-dot"></div></div>
+                <div class="flute-bar" data-freq="392.00"><span class="flute-text">🪈 Nada Sol (5)</span><div class="flute-hole-dot"></div></div>
+                <div class="flute-bar" data-freq="440.00"><span class="flute-text">🪈 Nada La (6)</span><div class="flute-hole-dot"></div></div>
+                <div class="flute-bar" data-freq="493.88"><span class="flute-text">🪈 Nada Si (7)</span><div class="flute-hole-dot"></div></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let audioCtx = null;
+
+    const tabPiano = document.getElementById('tabPiano');
+    const tabDrum = document.getElementById('tabDrum');
+    const tabFlute = document.getElementById('tabFlute');
+
+    const viewPiano = document.getElementById('viewPiano');
+    const viewDrum = document.getElementById('viewDrum');
+    const viewFlute = document.getElementById('viewFlute');
+
+    const viewContainer = document.getElementById('view-container');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // Web Audio Synthesizers
+    function playPianoSound(freq) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 1.2);
+        } catch (e) {}
+    }
+
+    function playFluteSound(freq) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            lfo.frequency.setValueAtTime(5, audioCtx.currentTime);
+            lfoGain.gain.setValueAtTime(freq * 0.012, audioCtx.currentTime);
+            lfo.connect(osc.frequency);
+
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.4);
+
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            lfo.start(); osc.start();
+            lfo.stop(audioCtx.currentTime + 1.4); osc.stop(audioCtx.currentTime + 1.4);
+        } catch (e) {}
+    }
+
+    function playDrumSound(type) {
+        if (!audioCtx) return;
+        try {
+            const now = audioCtx.currentTime;
+            if (type === 'kick') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.4);
+                gain.gain.setValueAtTime(0.9, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'snare') {
+                const bufferSize = audioCtx.sampleRate * 0.18;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+                const whiteNoise = audioCtx.createBufferSource();
+                whiteNoise.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'highpass'; filter.frequency.value = 1000;
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                whiteNoise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+                whiteNoise.start(now); whiteNoise.stop(now + 0.18);
+            } else if (type === 'tom') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                gain.gain.setValueAtTime(0.7, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'hihat') {
+                const bufferSize = audioCtx.sampleRate * 0.08;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+                const whiteNoise = audioCtx.createBufferSource();
+                whiteNoise.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'highpass'; filter.frequency.value = 7000;
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                whiteNoise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+                whiteNoise.start(now); whiteNoise.stop(now + 0.08);
+            }
+        } catch (e) {}
+    }
+
+    function spawnNoteParticle(x, y) {
+        const symbols = ['🎵', '🎶', '⭐', '✨'];
+        const p = document.createElement('div');
+        p.className = 'note-particle';
+        p.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+        p.style.left = `${x - 15}px`;
+        p.style.top = `${y - 15}px`;
+        viewContainer.appendChild(p);
+        setTimeout(() => p.remove(), 800);
+    }
+
+    // Attach Event Listeners
+    document.querySelectorAll('.toy-key').forEach(key => {
+        key.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            initAudio();
+            const freq = parseFloat(key.dataset.freq);
+            playPianoSound(freq);
+            const rect = key.getBoundingClientRect();
+            spawnNoteParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            key.classList.add('active');
+            setTimeout(() => key.classList.remove('active'), 120);
+        });
+    });
+
+    document.querySelectorAll('.drum-pad-circle').forEach(drum => {
+        drum.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            initAudio();
+            const type = drum.dataset.type;
+            playDrumSound(type);
+            const rect = drum.getBoundingClientRect();
+            spawnNoteParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            drum.classList.add('hit');
+            setTimeout(() => drum.classList.remove('hit'), 120);
+        });
+    });
+
+    document.querySelectorAll('.flute-bar').forEach(bar => {
+        bar.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            initAudio();
+            const freq = parseFloat(bar.dataset.freq);
+            playFluteSound(freq);
+            const rect = bar.getBoundingClientRect();
+            spawnNoteParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            bar.classList.add('active');
+            setTimeout(() => bar.classList.remove('active'), 200);
+        });
+    });
+
+    function switchTab(activeTab, activeView) {
+        initAudio();
+        [tabPiano, tabDrum, tabFlute].forEach(t => t.classList.remove('active'));
+        [viewPiano, viewDrum, viewFlute].forEach(v => v.classList.remove('active'));
+        activeTab.classList.add('active');
+        activeView.classList.add('active');
+    }
+
+    tabPiano.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab(tabPiano, viewPiano); });
+    tabDrum.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab(tabDrum, viewDrum); });
+    tabFlute.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab(tabFlute, viewFlute); });
+</script>
+</body>
+</html>

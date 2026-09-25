@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Papan Tulis Ceria</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FFF5F5 0%, #E3F2FD 100%);
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Fredoka One', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: calc(var(--sat) + 6px);
+            padding-bottom: calc(var(--sab) + 50px); /* Jarak Aman Navigasi Bawah HP */
+            padding-left: calc(var(--sal) + 10px);
+            padding-right: calc(var(--sar) + 10px);
+        }
+
+        /* Header UI */
+        #header {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pill-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #1976D2;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            border: 2px solid #FFF;
+        }
+
+        .action-btn {
+            background: #FF5252;
+            color: white;
+            border: 2px solid #FFF;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            cursor: pointer;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Papan Tulis Canvas Wrapper */
+        #canvas-wrapper {
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 400px;
+            flex: 1;
+            border-radius: 22px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            border: 5px solid #FFD166;
+            position: relative;
+            margin: 6px 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            background: #FFFFFF;
+        }
+
+        /* Control Panel Bawah */
+        #controls-panel {
+            width: 100%;
+            max-width: 400px;
+            background: #FFFFFF;
+            padding: 10px;
+            border-radius: 22px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+            border: 3px solid #FFF;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Baris Pilihan Ukuran Kuas */
+        .size-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: #F5F5F5;
+            padding: 4px 8px;
+            border-radius: 16px;
+        }
+
+        .size-btn {
+            background: #E0E0E0;
+            border: 2px solid #FFF;
+            border-radius: 12px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #424242;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .size-btn.active {
+            background: #1976D2;
+            color: #FFF;
+            border-color: #90CAF9;
+        }
+
+        /* Palet Warna Grid (Kotak Warna) */
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+        }
+
+        .color-box {
+            aspect-ratio: 1 / 1;
+            border-radius: 12px;
+            border: 2px solid #E0E0E0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            transition: transform 0.1s ease;
+        }
+
+        .color-box.active {
+            transform: scale(1.15);
+            border: 3px solid #000000 !important;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header -->
+    <div id="header">
+        <div class="pill-box">🎨 Papan Tulis Ceria</div>
+        <button class="action-btn" id="clearBtn">🗑️ Hapus Semua</button>
+    </div>
+
+    <!-- Papan Gambar Canvas -->
+    <div id="canvas-wrapper">
+        <canvas id="paintCanvas"></canvas>
+    </div>
+
+    <!-- Control Panel Bawah -->
+    <div id="controls-panel">
+        <!-- Pilihan Ukuran Kuas -->
+        <div class="size-row">
+            <button class="size-btn" data-size="5">✏️ Kecil</button>
+            <button class="size-btn active" data-size="14">🖌️ Sedang</button>
+            <button class="size-btn" data-size="28">🖍️ Besar</button>
+        </div>
+
+        <!-- Palet Warna Lanjutan -->
+        <div class="palette-grid" id="paletteGrid"></div>
+    </div>
+</div>
+
+<script>
+    // 12 Warna Cerah untuk Bebas Menggambar
+    const colorList = [
+        { hex: '#FF3D00', label: 'Merah' },
+        { hex: '#FF9100', label: 'Oranye' },
+        { hex: '#FFEA00', label: 'Kuning' },
+        { hex: '#00E676', label: 'Hijau Muda' },
+        { hex: '#00B0FF', label: 'Biru Muda' },
+        { hex: '#2979FF', label: 'Biru Tua' },
+        { hex: '#651FFF', label: 'Ungu' },
+        { hex: '#FF4081', label: 'Pink' },
+        { hex: '#8D6E63', label: 'Cokelat' },
+        { hex: '#37474F', label: 'Abu Tua' },
+        { hex: '#000000', label: 'Hitam' },
+        { hex: '#FFFFFF', label: 'Penghapus', isEraser: true }
+    ];
+
+    const canvas = document.getElementById('paintCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvas-wrapper');
+    const paletteGrid = document.getElementById('paletteGrid');
+    const clearBtn = document.getElementById('clearBtn');
+    const sizeBtns = document.querySelectorAll('.size-btn');
+
+    let isDrawing = false;
+    let currentColor = '#FF3D00';
+    let currentSize = 14;
+    let isEraserMode = false;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSound(freq = 500) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } catch (e) {}
+    }
+
+    // Resolusi Retina HD Canvas
+    function resizeCanvas() {
+        const rect = canvasWrapper.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+
+        // Simpan gambar saat ini sebelum resize
+        let tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        let tempCtx = tempCanvas.getContext('2d');
+        if (canvas.width > 0) {
+            tempCtx.drawImage(canvas, 0, 0);
+        }
+
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+
+        // Isi latar putih
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, rect.width, rect.height);
+
+        // Kembalikan isi gambar sebelumnya
+        if (tempCanvas.width > 0) {
+            ctx.drawImage(tempCanvas, 0, 0, rect.width, rect.height);
+        }
+
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    }
+
+    // Palet Warna Grid UI
+    function renderPalette() {
+        paletteGrid.innerHTML = '';
+        colorList.forEach((item) => {
+            const box = document.createElement('div');
+            box.className = 'color-box' + (item.hex === currentColor ? ' active' : '');
+            box.style.backgroundColor = item.hex;
+
+            if (item.isEraser) {
+                box.innerText = '🧼';
+            }
+
+            box.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                initAudio();
+                playSound(650);
+
+                currentColor = item.hex;
+                isEraserMode = !!item.isEraser;
+
+                document.querySelectorAll('.color-box').forEach(b => b.classList.remove('active'));
+                box.classList.add('active');
+            });
+
+            paletteGrid.appendChild(box);
+        });
+    }
+
+    // Dapatkan Koordinat Sentuhan Presisi
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
+
+    function startDrawing(e) {
+        e.preventDefault();
+        initAudio();
+        isDrawing = true;
+
+        const pos = getPos(e);
+
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.strokeStyle = isEraserMode ? '#FFFFFF' : currentColor;
+        ctx.lineWidth = isEraserMode ? currentSize * 2 : currentSize;
+
+        // Coret titik awal
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+
+        const pos = getPos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    }
+
+    function stopDrawing(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        isDrawing = false;
+        ctx.beginPath();
+    }
+
+    // Event Listeners Melukis
+    canvas.addEventListener('pointerdown', startDrawing);
+    canvas.addEventListener('pointermove', draw);
+    canvas.addEventListener('pointerup', stopDrawing);
+    canvas.addEventListener('pointercancel', stopDrawing);
+
+    // Pengaturan Ukuran Kuas
+    sizeBtns.forEach(btn => {
+        btn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            initAudio();
+            playSound(550);
+
+            sizeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSize = parseInt(btn.dataset.size);
+        });
+    });
+
+    // Tombol Bersihkan Papan Tulis
+    clearBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        playSound(300);
+
+        const rect = canvasWrapper.getBoundingClientRect();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, rect.width, rect.height);
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Inisialisasi
+    renderPalette();
+    setTimeout(resizeCanvas, 100);
+</script>
+</body>
+</html>

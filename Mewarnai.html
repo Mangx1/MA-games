@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Mewarnai Digital Ceria</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FFF5F5 0%, #E0F7FA 100%);
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: calc(var(--sat) + 6px);
+            padding-bottom: calc(var(--sab) + 55px); /* Safe zone navigasi bawah HP */
+            padding-left: calc(var(--sal) + 10px);
+            padding-right: calc(var(--sar) + 10px);
+        }
+
+        /* 1. Header UI */
+        #header {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pill-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #D81B60;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 2px solid #FFF;
+        }
+
+        .home-btn {
+            background: #FFD166;
+            border: 2px solid #FFF;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 17px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        /* 2. Top Controls (Pindah ke Atas Gambar) */
+        #controls-box {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .ctrl-btn {
+            flex: 1;
+            background: #FF7043;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 8px 12px;
+            border-radius: 22px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .ctrl-btn.secondary {
+            background: #26A69A;
+        }
+
+        .ctrl-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 3. Drawing Canvas Box (SVG Display) */
+        #drawing-wrapper {
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 360px;
+            flex: 1;
+            max-height: 270px;
+            border-radius: 25px;
+            padding: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            border: 5px solid #FFD166;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 6px 0;
+        }
+
+        #drawing-svg-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            max-height: 240px;
+        }
+
+        .color-part {
+            cursor: pointer;
+            transition: fill 0.2s ease;
+        }
+
+        .color-part:active {
+            opacity: 0.85;
+        }
+
+        /* 4. Palet Warna Kotak-Kotak (Grid 5 Kolom x 2 Baris, Tanpa Scroll) */
+        #palette-box {
+            width: 100%;
+            max-width: 360px;
+            background: #FFFFFF;
+            padding: 10px;
+            border-radius: 22px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+            border: 3px solid #FFF;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .color-swatch {
+            aspect-ratio: 1 / 1;
+            border-radius: 14px; /* Kotak Membal */
+            border: 3px solid #E0E0E0;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .color-swatch.active {
+            transform: scale(1.1);
+            border-color: #222222 !important;
+            border-width: 4px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.3);
+        }
+
+        /* Overlays (Start & Ending) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(255, 245, 245, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+        }
+
+        .overlay-card {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 5px solid #FF80AB;
+            width: 92%;
+            max-width: 360px;
+        }
+
+        .title {
+            font-size: 26px;
+            color: #C2185B;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 18px;
+        }
+
+        .menu-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .level-btn {
+            background: #FF4081;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 12px 16px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .level-btn:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header -->
+    <div id="header">
+        <button class="home-btn" id="homeBtn" title="Menu Utama">🏠 Menu</button>
+        <div class="pill-box" id="levelDisplay">Lvl 1: Apel</div>
+        <div class="pill-box" id="starDisplay">⭐ 0</div>
+    </div>
+
+    <!-- Controls di Bagian Atas -->
+    <div id="controls-box">
+        <button class="ctrl-btn" id="resetBtn">🔄 Ulang Warna</button>
+        <button class="ctrl-btn secondary" id="speakBtn">🔊 Dengar Nama</button>
+    </div>
+
+    <!-- Area Gambar SVG Mewarnai -->
+    <div id="drawing-wrapper">
+        <div id="drawing-svg-container"></div>
+    </div>
+
+    <!-- Palet Warna Kotak-Kotak (Grid 5x2) -->
+    <div id="palette-box"></div>
+
+    <!-- Screen Menu Pilih Level (1-10) -->
+    <div id="start-overlay" class="overlay">
+        <div class="overlay-card">
+            <div style="font-size: 55px; margin-bottom: 5px;">🎨 Mewarnai 🎨</div>
+            <div class="title">Pilih Gambar</div>
+            <div class="subtitle">Sentuh gambar untuk memberi warna!</div>
+            
+            <div class="menu-btn-group" id="levelBtnContainer"></div>
+        </div>
+    </div>
+
+    <!-- Screen Kemenangan / Gambar Selesai -->
+    <div id="win-overlay" class="overlay hidden">
+        <div class="overlay-card">
+            <div style="font-size: 60px; margin-bottom: 8px;">🏆</div>
+            <div class="title" style="color: #26A69A;" id="winTitle">GAMBAR SELESAI!</div>
+            <div class="subtitle" id="winSubtitle">Pintar sekali, gambarmu cantik sekali! 🎉</div>
+            
+            <div class="menu-btn-group">
+                <button class="level-btn" id="nextLevelBtn" style="justify-content: center;">GAMBAR SELANJUTNYA ➡️</button>
+                <button class="level-btn" id="winHomeBtn" style="background: #C2185B; justify-content: center;">MENU UTAMA 🏠</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Palet 10 Warna
+    const colorPalette = [
+        { color: '#FF4D4D', label: 'Merah' },
+        { color: '#FFD166', label: 'Kuning' },
+        { color: '#06D6A0', label: 'Hijau' },
+        { color: '#118AB2', label: 'Biru' },
+        { color: '#7209B7', label: 'Ungu' },
+        { color: '#FF70A6', label: 'Pink' },
+        { color: '#FF9F1C', label: 'Oranye' },
+        { color: '#8D6E63', label: 'Cokelat' },
+        { color: '#333333', label: 'Hitam' },
+        { color: '#FFFFFF', label: 'Hapus', isEraser: true }
+    ];
+
+    // Data 10 Gambar SVG (Level 1-10)
+    const levelsData = [
+        { level: 1, name: 'Apel Segar', icon: '🍎', svg: `
+            <svg viewBox="0 0 200 200">
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M100,55 Q125,20 145,45 Q120,65 100,55 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M100,55 Q95,30 90,20 L100,20 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M100,70 C70,50 30,75 30,115 C30,165 80,185 100,185 C120,185 170,165 170,115 C170,75 130,50 100,70 Z"/>
+            </svg>`
+        },
+        { level: 2, name: 'Mobil Ceria', icon: '🚗', svg: `
+            <svg viewBox="0 0 200 200">
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M25,120 L48,75 L130,75 L160,120 L185,120 Q192,120 192,128 L192,150 L8,150 L8,128 Q8,120 15,120 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M55,83 L88,83 L88,115 L42,115 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M96,83 L125,83 L142,115 L96,115 Z"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" cx="50" cy="150" r="20"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" cx="148" cy="150" r="20"/>
+            </svg>`
+        },
+        { level: 3, name: 'Kucing Lucu', icon: '🐱', svg: `
+            <svg viewBox="0 0 200 200">
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M30,50 L65,80 L25,110 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M170,50 L135,80 L175,110 Z"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" cx="100" cy="115" r="65"/>
+                <polygon class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" points="100,120 90,110 110,110"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" cx="70" cy="100" r="8"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" cx="130" cy="100" r="8"/>
+            </svg>`
+        },
+        { level: 4, name: 'Rumahku', icon: '🏠', svg: `
+            <svg viewBox="0 0 200 200">
+                <polygon class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" points="100,30 20,85 180,85"/>
+                <rect class="color-part" x="35" y="85" width="130" height="95" fill="#FFFFFF" stroke="#333" stroke-width="6"/>
+                <rect class="color-part" x="85" y="120" width="30" height="60" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+                <rect class="color-part" x="50" y="100" width="25" height="25" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+                <rect class="color-part" x="125" y="100" width="25" height="25" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+            </svg>`
+        },
+        { level: 5, name: 'Ikan Berenang', icon: '🐟', svg: `
+            <svg viewBox="0 0 200 200">
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M135,100 L180,60 L170,100 L180,140 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M140,100 C100,50 40,70 20,100 C40,130 100,150 140,100 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M70,72 Q90,30 110,65 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M70,128 Q90,170 110,135 Z"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" cx="50" cy="90" r="7"/>
+            </svg>`
+        },
+        { level: 6, name: 'Es Krim Lezat', icon: '🍦', svg: `
+            <svg viewBox="0 0 200 200">
+                <polygon class="color-part" points="100,190 60,115 140,115" fill="#FFFFFF" stroke="#333" stroke-width="6"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M55,115 C45,95 55,70 80,70 C85,55 115,55 120,70 C145,70 155,95 145,115 Z"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" cx="100" cy="50" r="18"/>
+            </svg>`
+        },
+        { level: 7, name: 'Bunga Indah', icon: '🌸', svg: `
+            <svg viewBox="0 0 200 200">
+                <rect class="color-part" x="96" y="105" width="8" height="80" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M104,140 Q135,120 140,150 Q110,160 104,140 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M96,150 Q65,130 60,160 Q90,170 96,150 Z"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" cx="100" cy="63" r="16"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" cx="100" cy="32" r="16"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" cx="131" cy="63" r="16"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" cx="100" cy="94" r="16"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" cx="69" cy="63" r="16"/>
+            </svg>`
+        },
+        { level: 8, name: 'Roket Keren', icon: '🚀', svg: `
+            <svg viewBox="0 0 200 200">
+                <polygon class="color-part" points="100,160 80,190 120,190" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M70,80 Q70,20 100,20 Q130,20 130,80 L130,160 L70,160 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M70,110 L45,160 L70,160 Z"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M130,110 L155,160 L130,160 Z"/>
+                <circle class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" cx="100" cy="85" r="16"/>
+            </svg>`
+        },
+        { level: 9, name: 'Kapal Laut', icon: '⛵', svg: `
+            <svg viewBox="0 0 200 200">
+                <rect class="color-part" x="97" y="30" width="6" height="110" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+                <polygon class="color-part" points="103,35 160,85 103,85" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+                <polygon class="color-part" points="97,45 45,95 97,95" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="6" d="M30,135 L170,135 L150,175 L50,175 Z"/>
+            </svg>`
+        },
+        { level: 10, name: 'Balon Terbang', icon: '🎈', svg: `
+            <svg viewBox="0 0 200 200">
+                <path class="color-part" fill="#FFFFFF" stroke="#333" stroke-width="5" d="M100,120 Q105,160 95,190"/>
+                <ellipse class="color-part" cx="100" cy="70" rx="40" ry="50" fill="#FFFFFF" stroke="#333" stroke-width="6"/>
+                <ellipse class="color-part" cx="50" cy="90" rx="30" ry="38" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+                <ellipse class="color-part" cx="150" cy="90" rx="30" ry="38" fill="#FFFFFF" stroke="#333" stroke-width="5"/>
+            </svg>`
+        }
+    ];
+
+    let currentLevelIdx = 0;
+    let selectedColor = '#FF4D4D';
+    let stars = 0;
+    let isProcessing = false;
+
+    let audioCtx = null;
+
+    // DOM Elements
+    const svgContainer = document.getElementById('drawing-svg-container');
+    const paletteBox = document.getElementById('palette-box');
+
+    const startOverlay = document.getElementById('start-overlay');
+    const winOverlay = document.getElementById('win-overlay');
+    const levelBtnContainer = document.getElementById('levelBtnContainer');
+    const levelDisplay = document.getElementById('levelDisplay');
+    const starDisplay = document.getElementById('starDisplay');
+
+    const resetBtn = document.getElementById('resetBtn');
+    const speakBtn = document.getElementById('speakBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    const winHomeBtn = document.getElementById('winHomeBtn');
+    const winTitle = document.getElementById('winTitle');
+    const winSubtitle = document.getElementById('winSubtitle');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playPopNote(freq = 523.25) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        } catch (e) {}
+    }
+
+    function playWinFanfare() {
+        if (!audioCtx) return;
+        try {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const startTime = audioCtx.currentTime + (idx * 0.12);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.4, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.35);
+            });
+        } catch (e) {}
+    }
+
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.88;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function speakPraise(onComplete) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const text = "Hore! Gambarmu sudah cantik sekali! Pintar!";
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.88;
+
+            let isCalled = false;
+            const finish = () => {
+                if (!isCalled) {
+                    isCalled = true;
+                    if (onComplete) onComplete();
+                }
+            };
+
+            utterance.onend = finish;
+            utterance.onerror = finish;
+            window.speechSynthesis.speak(utterance);
+
+            setTimeout(finish, 2200);
+        } else {
+            if (onComplete) setTimeout(onComplete, 1000);
+        }
+    }
+
+    // Render Palet Warna Kotak-Kotak Grid (5x2)
+    function renderPalette() {
+        paletteBox.innerHTML = '';
+        colorPalette.forEach((item, idx) => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch' + (item.color === selectedColor ? ' active' : '');
+            swatch.style.backgroundColor = item.color;
+
+            if (item.isEraser) {
+                swatch.innerText = '🧼';
+            }
+
+            swatch.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                initAudio();
+                selectedColor = item.color;
+
+                document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+                swatch.classList.add('active');
+
+                playPopNote(600 + (idx * 30));
+                speakText(item.label);
+            });
+
+            paletteBox.appendChild(swatch);
+        });
+    }
+
+    // Load Gambar SVG Level
+    function loadLevelSvg(idx) {
+        isProcessing = false;
+        const lvl = levelsData[idx];
+        levelDisplay.innerText = `Lvl ${lvl.level}: ${lvl.name}`;
+        starDisplay.innerText = `⭐ ${stars}`;
+
+        svgContainer.innerHTML = lvl.svg;
+
+        const parts = svgContainer.querySelectorAll('.color-part');
+        parts.forEach(part => {
+            part.setAttribute('fill', '#FFFFFF');
+
+            part.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                initAudio();
+
+                if (isProcessing) return;
+
+                part.setAttribute('fill', selectedColor);
+                playPopNote(750);
+
+                checkImageCompletion();
+            });
+        });
+
+        setTimeout(() => speakText(`Warnai ${lvl.name}`), 200);
+    }
+
+    function checkImageCompletion() {
+        const parts = svgContainer.querySelectorAll('.color-part');
+        let uncolored = 0;
+
+        parts.forEach(part => {
+            const fill = part.getAttribute('fill').toUpperCase();
+            if (fill === '#FFFFFF' || fill === 'WHITE') {
+                uncolored++;
+            }
+        });
+
+        if (uncolored === 0) {
+            isProcessing = true;
+            playWinFanfare();
+
+            stars += 10;
+            starDisplay.innerText = `⭐ ${stars}`;
+
+            speakPraise(() => {
+                onLevelComplete();
+            });
+        }
+    }
+
+    function resetCurrentColor() {
+        initAudio();
+        playPopNote(400);
+        const parts = svgContainer.querySelectorAll('.color-part');
+        parts.forEach(part => part.setAttribute('fill', '#FFFFFF'));
+    }
+
+    function onLevelComplete() {
+        winOverlay.classList.remove('hidden');
+
+        if (currentLevelIdx < levelsData.length - 1) {
+            winTitle.innerText = "GAMBAR SELESAI!";
+            winSubtitle.innerText = `Pintar sekali, kamu berhasil mewarnai ${levelsData[currentLevelIdx].name}! 🎉`;
+            nextLevelBtn.style.display = "flex";
+        } else {
+            winTitle.innerText = "🏆 SELAMAT! TAMAT! 🏆";
+            winSubtitle.innerText = "Luar biasa, kamu sudah mewarnai SEMUA GAMBAR! 🎉";
+            nextLevelBtn.style.display = "none";
+        }
+    }
+
+    function renderLevelMenu() {
+        levelBtnContainer.innerHTML = '';
+        levelsData.forEach((lvl, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'level-btn';
+            btn.innerHTML = `<span>Lvl ${lvl.level}: ${lvl.name}</span> <span>${lvl.icon}</span>`;
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                startLevel(idx);
+            });
+            levelBtnContainer.appendChild(btn);
+        });
+    }
+
+    function startLevel(idx) {
+        initAudio();
+        currentLevelIdx = idx;
+
+        startOverlay.classList.add('hidden');
+        winOverlay.classList.add('hidden');
+
+        loadLevelSvg(idx);
+    }
+
+    function showMainMenu() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        startOverlay.classList.remove('hidden');
+        winOverlay.classList.add('hidden');
+    }
+
+    // Event Listeners
+    resetBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); resetCurrentColor(); });
+    speakBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); speakText(levelsData[currentLevelIdx].name); });
+
+    homeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+    winHomeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+
+    nextLevelBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (currentLevelIdx < levelsData.length - 1) {
+            startLevel(currentLevelIdx + 1);
+        }
+    });
+
+    // Initial Setup
+    renderPalette();
+    renderLevelMenu();
+</script>
+</body>
+</html>

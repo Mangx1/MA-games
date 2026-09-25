@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Cari Gambar Berbeda</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #E8F5E9 0%, #FFF3E0 100%);
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            padding-top: calc(var(--sat) + 8px);
+            padding-bottom: calc(var(--sab) + 55px); /* Safe zone navigasi bawah HP */
+            padding-left: calc(var(--sal) + 12px);
+            padding-right: calc(var(--sar) + 12px);
+        }
+
+        /* Header UI */
+        #header {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pill-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #2E7D32;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 2px solid #FFF;
+        }
+
+        .home-btn {
+            background: #FFD166;
+            border: 2px solid #FFF;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 17px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Prompt Box Petunjuk */
+        #prompt-box {
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 360px;
+            padding: 14px 15px;
+            border-radius: 22px;
+            text-align: center;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+            border: 4px solid #81C784;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .prompt-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1B5E20;
+        }
+
+        .sound-replay-btn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+            cursor: pointer;
+        }
+
+        .sound-replay-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Grid 4 Kartu Besar (2x2) */
+        #cards-grid {
+            width: 100%;
+            max-width: 350px;
+            aspect-ratio: 1 / 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .card {
+            background: #FFFFFF;
+            border-radius: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(55px, 15vw, 75px);
+            box-shadow: 0 6px 0px #CBD5E1, 0 8px 12px rgba(0,0,0,0.12);
+            border: 4px solid #FFF;
+            cursor: pointer;
+            transition: transform 0.08s ease;
+        }
+
+        .card:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #CBD5E1, 0 4px 6px rgba(0,0,0,0.12);
+        }
+
+        /* Overlays (Start & Ending) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(232, 245, 233, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+        }
+
+        .overlay-card {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 5px solid #81C784;
+            width: 92%;
+            max-width: 360px;
+        }
+
+        .title {
+            font-size: 26px;
+            color: #2E7D32;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 18px;
+        }
+
+        .menu-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .level-btn {
+            background: #FF4081;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 12px 16px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .level-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Animations Koreksi Jawaban */
+        @keyframes correctBounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        .anim-correct {
+            animation: correctBounce 0.4s ease;
+            background: #C7F9CC !important;
+            border-color: #57CC99 !important;
+        }
+
+        .anim-wrong {
+            animation: wrongShake 0.4s ease;
+            background: #FFCCD5 !important;
+            border-color: #FF4D6D !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header -->
+    <div id="header">
+        <button class="home-btn" id="homeBtn" title="Menu Utama">🏠 Menu</button>
+        <div class="pill-box" id="levelDisplay">Lvl 1: Hewan</div>
+        <div class="pill-box" id="starDisplay">⭐ 0</div>
+    </div>
+
+    <!-- Kotak Petunjuk -->
+    <div id="prompt-box">
+        <span class="prompt-text">Mana yang berbeda?</span>
+        <button class="sound-replay-btn" id="replaySoundBtn">🔊 Suara</button>
+    </div>
+
+    <!-- Grid 4 Kartu Jawaban -->
+    <div id="cards-grid"></div>
+
+    <!-- Screen Menu Pilih Level (1-10) -->
+    <div id="start-overlay" class="overlay">
+        <div class="overlay-card">
+            <div style="font-size: 55px; margin-bottom: 5px;">🔍 Cari Gambar 🔍</div>
+            <div class="title">Pilih Level</div>
+            <div class="subtitle">Tekan 1 gambar yang paling berbeda!</div>
+            
+            <div class="menu-btn-group" id="levelBtnContainer"></div>
+        </div>
+    </div>
+
+    <!-- Screen Kemenangan Level -->
+    <div id="win-overlay" class="overlay hidden">
+        <div class="overlay-card">
+            <div style="font-size: 60px; margin-bottom: 8px;">🏆</div>
+            <div class="title" style="color: #2E7D32;" id="winTitle">LEVEL SELESAI!</div>
+            <div class="subtitle" id="winSubtitle">Pintar sekali, kamu berhasil menemukan semua gambar berbeda! 🎉</div>
+            
+            <div class="menu-btn-group">
+                <button class="level-btn" id="nextLevelBtn" style="justify-content: center;">LEVEL SELANJUTNYA ➡️</button>
+                <button class="level-btn" id="winHomeBtn" style="background: #2E7D32; justify-content: center;">MENU UTAMA 🏠</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Database 10 Level
+    const levelsData = [
+        { level: 1, name: 'Hewan', pairs: [
+            { same: '🐱', diff: '🐶', name: 'Anjing' },
+            { same: '🐰', diff: '🐮', name: 'Sapi' },
+            { same: '🦆', diff: '🐸', name: 'Katak' },
+            { same: '🐘', diff: '🦁', name: 'Singa' },
+            { same: '🐵', diff: '🐼', name: 'Panda' }
+        ]},
+        { level: 2, name: 'Buah', pairs: [
+            { same: '🍎', diff: '🚗', name: 'Mobil' },
+            { same: '🍌', diff: '🍓', name: 'Stroberi' },
+            { same: '🍊', diff: '🍇', name: 'Anggur' },
+            { same: '🍉', diff: '🍍', name: 'Nanas' },
+            { same: '🥑', diff: '🍒', name: 'Ceri' }
+        ]},
+        { level: 3, name: 'Kendaraan', pairs: [
+            { same: '🚗', diff: '🦆', name: 'Bebek' },
+            { same: '✈️', diff: '🚀', name: 'Roket' },
+            { same: '🚢', diff: '🚂', name: 'Kereta' },
+            { same: '🚲', diff: '🛵', name: 'Motor' },
+            { same: '🚁', diff: '🚜', name: 'Traktor' }
+        ]},
+        { level: 4, name: 'Sayuran', pairs: [
+            { same: '🥕', diff: '⭐', name: 'Bintang' },
+            { same: '🌽', diff: '🥦', name: 'Brokoli' },
+            { same: '🍆', diff: '🍅', name: 'Tomat' },
+            { same: '🍄', diff: '🥒', name: 'Mentimun' },
+            { same: '🫑', diff: '🧅', name: 'Bawang' }
+        ]},
+        { level: 5, name: 'Makanan', pairs: [
+            { same: '🍕', diff: '🚲', name: 'Sepeda' },
+            { same: '🍰', diff: '🍦', name: 'Es Krim' },
+            { same: '🍩', diff: '🍔', name: 'Burger' },
+            { same: '🍿', diff: '🍟', name: 'Kentang' },
+            { same: '🍬', diff: '🍫', name: 'Cokelat' }
+        ]},
+        { level: 6, name: 'Sekolah', pairs: [
+            { same: '✏️', diff: '🍰', name: 'Kue' },
+            { same: '📖', diff: '🎒', name: 'Tas' },
+            { same: '✂️', diff: '📐', name: 'Penggaris' },
+            { same: '🎨', diff: '🖌️', name: 'Kuas' },
+            { same: '🖍️', diff: '📝', name: 'Kertas' }
+        ]},
+        { level: 7, name: 'Ekspresi', pairs: [
+            { same: '😀', diff: '😢', name: 'Sedih' },
+            { same: '😍', diff: '😠', name: 'Marah' },
+            { same: '🥳', diff: '😴', name: 'Tidur' },
+            { same: '😎', diff: '😷', name: 'Sakit' },
+            { same: '🤪', diff: '👻', name: 'Hantu' }
+        ]},
+        { level: 8, name: 'Warna & Bentuk', pairs: [
+            { same: '🔴', diff: '🟦', name: 'Biru' },
+            { same: '⭐', diff: '💛', name: 'Hati' },
+            { same: '🔺', diff: '🟢', name: 'Hijau' },
+            { same: '💎', diff: '🔶', name: 'Oranye' },
+            { same: '💜', diff: '⬛', name: 'Hitam' }
+        ]},
+        { level: 9, name: 'Alam & Cuaca', pairs: [
+            { same: '☀️', diff: '🐟', name: 'Ikan' },
+            { same: '🌙', diff: '🌈', name: 'Pelangi' },
+            { same: '🌧️', diff: '⚡', name: 'Petir' },
+            { same: '🌲', diff: '🌺', name: 'Bunga' },
+            { same: '🔥', diff: '🌊', name: 'Ombak' }
+        ]},
+        { level: 10, name: 'Super Campuran', pairs: [
+            { same: '🐱', diff: '🍎', name: 'Apel' },
+            { same: '🚗', diff: '🍕', name: 'Pizza' },
+            { same: '⭐', diff: '🐻', name: 'Beruang' },
+            { same: '🍦', diff: '🚀', name: 'Roket' },
+            { same: '🎈', diff: '🤖', name: 'Robot' }
+        ]}
+    ];
+
+    let currentLevelIdx = 0;
+    let currentRound = 1;
+    const maxRounds = 5;
+    let stars = 0;
+    let targetDiffItem = null;
+    let isProcessing = false;
+
+    let audioCtx = null;
+
+    // DOM Elements
+    const cardsGrid = document.getElementById('cards-grid');
+    const startOverlay = document.getElementById('start-overlay');
+    const winOverlay = document.getElementById('win-overlay');
+    const levelBtnContainer = document.getElementById('levelBtnContainer');
+    const levelDisplay = document.getElementById('levelDisplay');
+    const starDisplay = document.getElementById('starDisplay');
+
+    const replaySoundBtn = document.getElementById('replaySoundBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    const winHomeBtn = document.getElementById('winHomeBtn');
+    const winTitle = document.getElementById('winTitle');
+    const winSubtitle = document.getElementById('winSubtitle');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playPopNote(freq = 523.25) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } catch (e) {}
+    }
+
+    function playWrongSound() {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        } catch (e) {}
+    }
+
+    function playWinFanfare() {
+        if (!audioCtx) return;
+        try {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const startTime = audioCtx.currentTime + (idx * 0.12);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.5, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.35);
+            });
+        } catch (e) {}
+    }
+
+    function speakTarget() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance("Mana gambar yang berbeda?");
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // Suara Pujian dengan Deteksi Selesai Bicara (onend)
+    function speakPraise(onComplete) {
+        if ('speechSynthesis' in window && targetDiffItem) {
+            window.speechSynthesis.cancel();
+            const praises = ['Pintar!', 'Hebat!', 'Bagus sekali!', 'Benar sekali!'];
+            const randomPraise = praises[Math.floor(Math.random() * praises.length)];
+            const text = `Benar, ini ${targetDiffItem.name}! ${randomPraise}`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.88;
+
+            let isCalled = false;
+            const finish = () => {
+                if (!isCalled) {
+                    isCalled = true;
+                    if (onComplete) onComplete();
+                }
+            };
+
+            utterance.onend = finish;
+            utterance.onerror = finish;
+
+            window.speechSynthesis.speak(utterance);
+
+            // Timer cadangan jika audio Webview tidak memicu event onend
+            setTimeout(finish, 2200);
+        } else {
+            if (onComplete) setTimeout(onComplete, 1000);
+        }
+    }
+
+    function setupRound() {
+        isProcessing = false;
+        cardsGrid.innerHTML = '';
+
+        const lvl = levelsData[currentLevelIdx];
+        levelDisplay.innerText = `Lvl ${lvl.level}: ${lvl.name} (${currentRound}/${maxRounds})`;
+        starDisplay.innerText = `⭐ ${stars}`;
+
+        const pair = lvl.pairs[(currentRound - 1) % lvl.pairs.length];
+        targetDiffItem = pair;
+
+        let choices = [
+            { emoji: pair.same, isDiff: false },
+            { emoji: pair.same, isDiff: false },
+            { emoji: pair.same, isDiff: false },
+            { emoji: pair.diff, isDiff: true }
+        ];
+
+        choices.sort(() => Math.random() - 0.5);
+
+        choices.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerText = item.emoji;
+
+            card.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                initAudio();
+                handleChoice(card, item.isDiff);
+            });
+
+            cardsGrid.appendChild(card);
+        });
+
+        setTimeout(() => speakTarget(), 200);
+    }
+
+    function handleChoice(cardElement, isDiff) {
+        if (isProcessing) return;
+
+        if (isDiff) {
+            // BENAR!
+            isProcessing = true;
+            cardElement.classList.add('anim-correct');
+
+            playPopNote(783.99);
+
+            stars += 10;
+            starDisplay.innerText = `⭐ ${stars}`;
+
+            // TUNGGU SAMPAI SUARA SELESAI BARU PINDAH RONDE!
+            speakPraise(() => {
+                advanceRound();
+            });
+        } else {
+            // SALAH!
+            cardElement.classList.add('anim-wrong');
+            playWrongSound();
+            setTimeout(() => cardElement.classList.remove('anim-wrong'), 400);
+        }
+    }
+
+    function advanceRound() {
+        if (currentRound < maxRounds) {
+            currentRound++;
+            setupRound();
+        } else {
+            onLevelComplete();
+        }
+    }
+
+    function onLevelComplete() {
+        playWinFanfare();
+        winOverlay.classList.remove('hidden');
+
+        if (currentLevelIdx < levelsData.length - 1) {
+            winTitle.innerText = "LEVEL SELESAI!";
+            winSubtitle.innerText = `Pintar sekali, kamu berhasil menyelesaikan Level ${levelsData[currentLevelIdx].level}! 🎉`;
+            nextLevelBtn.style.display = "flex";
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(`Hore! Level ${levelsData[currentLevelIdx].level} selesai! Kamu hebat sekali!`);
+                utterance.lang = 'id-ID';
+                window.speechSynthesis.speak(utterance);
+            }
+        } else {
+            winTitle.innerText = "🏆 SELAMAT! TAMAT! 🏆";
+            winSubtitle.innerText = "Luar biasa, kamu sudah menyelesaikan SEMUA 10 LEVEL! 🎉";
+            nextLevelBtn.style.display = "none";
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance("Hore! Luar biasa, kamu berhasil menamatkan semua level!");
+                utterance.lang = 'id-ID';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    }
+
+    function renderLevelMenu() {
+        levelBtnContainer.innerHTML = '';
+        levelsData.forEach((lvl, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'level-btn';
+            btn.innerHTML = `<span>Lvl ${lvl.level}: ${lvl.name}</span> <span>${lvl.pairs[0].diff}</span>`;
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                startLevel(idx);
+            });
+            levelBtnContainer.appendChild(btn);
+        });
+    }
+
+    function startLevel(idx) {
+        initAudio();
+        currentLevelIdx = idx;
+        currentRound = 1;
+
+        startOverlay.classList.add('hidden');
+        winOverlay.classList.add('hidden');
+
+        setupRound();
+    }
+
+    function showMainMenu() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        startOverlay.classList.remove('hidden');
+        winOverlay.classList.add('hidden');
+    }
+
+    // Event Listeners
+    replaySoundBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        speakTarget();
+    });
+
+    homeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+    winHomeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+
+    nextLevelBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (currentLevelIdx < levelsData.length - 1) {
+            startLevel(currentLevelIdx + 1);
+        }
+    });
+
+    // Initial Setup
+    renderLevelMenu();
+</script>
+</body>
+</html>
