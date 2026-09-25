@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Belajar Huruf, Angka & Kata</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%);
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            padding-top: calc(var(--sat) + 10px);
+            padding-bottom: calc(var(--sab) + 55px);
+            padding-left: calc(var(--sal) + 12px);
+            padding-right: calc(var(--sar) + 12px);
+        }
+
+        /* Top Header */
+        #header {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pill-box {
+            background: rgba(255, 255, 255, 0.92);
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #FF4081;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 2px solid #FFF;
+        }
+
+        .home-btn {
+            background: #FFD166;
+            border: 2px solid #FFF;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Prompt Area (Diperbesar) */
+        #prompt-box {
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 380px;
+            padding: 16px 15px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            border: 4px solid #FFD166;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #prompt-instruction {
+            font-size: 20px;
+            color: #4A4A4A;
+            font-weight: bold;
+        }
+
+        /* Tulisan Panduan Kata SUPER BESAR (Contoh: U L A R) */
+        #word-hint-display {
+            font-size: clamp(38px, 11vw, 52px);
+            font-weight: 900;
+            color: #FF4081;
+            letter-spacing: 6px;
+            margin: 4px 0 6px 0;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.05);
+        }
+
+        /* Word Slot Container & Kotak Kolom SUPER BESAR */
+        #slots-container {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin: 6px 0 10px 0;
+            flex-wrap: nowrap;
+        }
+
+        .word-slot {
+            width: clamp(46px, 12vw, 56px);  /* Kolom diperbesar */
+            height: clamp(52px, 14vw, 64px); /* Kolom dipertinggi */
+            background: #F0F2F5;
+            border: 4px dashed #118AB2;      /* Garis putus-putus dipertebal */
+            border-radius: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(30px, 8vw, 40px); /* Huruf di dalam slot diperbesar */
+            font-weight: bold;
+            color: #118AB2;
+        }
+
+        .word-slot.filled {
+            background: #FFD166;
+            border: 4px solid #FF9F1C;
+            color: #073B4C;
+        }
+
+        #target-display {
+            font-size: 68px;
+            font-weight: bold;
+            color: #118AB2;
+            line-height: 1.1;
+            margin: 4px 0;
+        }
+
+        .sound-replay-btn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+            cursor: pointer;
+            margin-top: 2px;
+        }
+
+        .sound-replay-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Cards Area */
+        #cards-container {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card {
+            flex: 1;
+            height: 95px;
+            max-width: 105px;
+            min-width: 0;
+            background: #FFFFFF;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(32px, 8.5vw, 44px);
+            font-weight: bold;
+            color: #073B4C;
+            box-shadow: 0 6px 0px #CBD5E1, 0 8px 12px rgba(0,0,0,0.12);
+            border: 3px solid #FFF;
+            cursor: pointer;
+            transition: transform 0.08s ease, opacity 0.2s ease;
+        }
+
+        .card:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #CBD5E1, 0 4px 6px rgba(0,0,0,0.12);
+        }
+
+        .card.disabled {
+            opacity: 0.2;
+            pointer-events: none;
+            box-shadow: none;
+        }
+
+        /* Overlays (Menu & Ending) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(112, 197, 255, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+        }
+
+        .overlay-card {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 5px solid #FFD166;
+            width: 92%;
+            max-width: 360px;
+        }
+
+        .title {
+            font-size: 26px;
+            color: #FF4081;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .menu-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .mode-btn {
+            background: #FF4081;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 14px 18px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.18);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .mode-btn.secondary {
+            background: #06D6A0;
+        }
+
+        .mode-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Animations */
+        @keyframes correctBounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        .anim-correct {
+            animation: correctBounce 0.4s ease;
+            background: #C7F9CC !important;
+            border-color: #57CC99 !important;
+        }
+
+        .anim-wrong {
+            animation: wrongShake 0.4s ease;
+            background: #FFCCD5 !important;
+            border-color: #FF4D6D !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header -->
+    <div id="header">
+        <button class="home-btn" id="homeBtn" title="Menu Utama">🏠 Menu</button>
+        <div class="pill-box" id="roundDisplay">Ronde: 1/10</div>
+        <div class="pill-box" id="starDisplay">⭐ 0</div>
+    </div>
+
+    <!-- Kotak Petunjuk -->
+    <div id="prompt-box">
+        <div id="prompt-instruction">Rangkai Kata:</div>
+        
+        <div id="target-display">A</div>
+        <div id="word-hint-display" style="display: none;">M A T A</div>
+        <div id="slots-container" style="display: none;"></div>
+
+        <button class="sound-replay-btn" id="replaySoundBtn">🔊 Dengar Suara</button>
+    </div>
+
+    <!-- Pilihan Kartu Jawaban -->
+    <div id="cards-container"></div>
+
+    <!-- Screen Halaman Menu Utama -->
+    <div id="start-overlay" class="overlay">
+        <div class="overlay-card">
+            <div class="title">🎈 Belajar Ceria 🎈</div>
+            <div class="subtitle">Pilih permainan yang kamu suka:</div>
+            
+            <div class="menu-btn-group">
+                <button class="mode-btn" id="modeSingleBtn">
+                    🔤 Huruf & Angka
+                </button>
+                <button class="mode-btn secondary" id="modeWordBtn">
+                    🧩 Merangkai Kata
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen ENDING -->
+    <div id="win-overlay" class="overlay hidden">
+        <div class="overlay-card">
+            <div style="font-size: 60px; margin-bottom: 8px;">🏆</div>
+            <div class="title" style="color: #06D6A0;">HORE! SELESAI!</div>
+            <div class="subtitle">Kamu pintar sekali, semua soal berhasil diselesaikan! 🎉</div>
+            
+            <div class="menu-btn-group">
+                <button class="mode-btn" id="restartBtn">MAIN LAGI 🔄</button>
+                <button class="mode-btn secondary" id="winHomeBtn">MENU UTAMA 🏠</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+    
+    const wordList = [
+        'MATA', 'KAKI', 'PIPI', 'GIGI', 'JARI', 'DADA', 'MAMA', 'PAPA', 'ADIK', 'BAYI',
+        'SAPI', 'KUDA', 'IKAN', 'AYAM', 'BEBEK', 'KERA', 'ULAR',
+        'ROTI', 'NASI', 'SUSU', 'APEL', 'KUE', 'MADU', 'AIR', 'ES',
+        'BUKU', 'BOLA', 'MEJA', 'SAPU', 'TOPI', 'BAJU', 'DASI', 'RODA', 'PITA', 'PINTU',
+        'AWAN', 'BATU', 'DAUN', 'KAYU', 'API', 'LAUT', 'POHON', 'BUMI'
+    ];
+
+    const colors = ['#FF595E', '#FFCA3A', '#8AC926', '#1982C4', '#6A4C93', '#FF9F1C'];
+
+    let gameCategory = 'single';
+    let currentMode = 'letter';
+    let currentTarget = '';
+    let wordProgress = [];
+    let currentRound = 1;
+    const maxRounds = 10;
+    let stars = 0;
+    let isProcessing = false;
+    let audioCtx = null;
+
+    const startOverlay = document.getElementById('start-overlay');
+    const winOverlay = document.getElementById('win-overlay');
+    const modeSingleBtn = document.getElementById('modeSingleBtn');
+    const modeWordBtn = document.getElementById('modeWordBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const winHomeBtn = document.getElementById('winHomeBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const replaySoundBtn = document.getElementById('replaySoundBtn');
+
+    const roundDisplay = document.getElementById('roundDisplay');
+    const starDisplay = document.getElementById('starDisplay');
+    const promptInstruction = document.getElementById('prompt-instruction');
+    const targetDisplay = document.getElementById('target-display');
+    const wordHintDisplay = document.getElementById('word-hint-display');
+    const slotsContainer = document.getElementById('slots-container');
+    const cardsContainer = document.getElementById('cards-container');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playPopNote(freq = 523.25) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } catch (e) {}
+    }
+
+    function playWrongSound() {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        } catch (e) {}
+    }
+
+    function playWinFanfare() {
+        if (!audioCtx) return;
+        try {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const startTime = audioCtx.currentTime + (idx * 0.12);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.5, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.35);
+            });
+        } catch (e) {}
+    }
+
+    function speakTarget() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            let text = '';
+            if (currentMode === 'letter') text = `Cari huruf ${currentTarget}`;
+            else if (currentMode === 'number') text = `Cari angka ${currentTarget}`;
+            else if (currentMode === 'word') text = `Rangkai kata ${currentTarget}`;
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function speakPraise() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const praises = ['Pintar!', 'Hebat!', 'Bagus sekali!', 'Luar biasa!'];
+            const randomPraise = praises[Math.floor(Math.random() * praises.length)];
+            const text = currentMode === 'word' ? `${currentTarget}! ${randomPraise}` : randomPraise;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function setupRound() {
+        isProcessing = false;
+        roundDisplay.innerText = `Ronde: ${currentRound}/${maxRounds}`;
+        starDisplay.innerText = `⭐ ${stars}`;
+        cardsContainer.innerHTML = '';
+        slotsContainer.innerHTML = '';
+
+        if (gameCategory === 'single') {
+            currentMode = Math.random() > 0.5 ? 'letter' : 'number';
+        } else {
+            currentMode = 'word';
+        }
+
+        if (currentMode === 'letter' || currentMode === 'number') {
+            targetDisplay.style.display = 'block';
+            wordHintDisplay.style.display = 'none';
+            slotsContainer.style.display = 'none';
+
+            const sourceArray = currentMode === 'letter' ? letters : numbers;
+            currentTarget = sourceArray[Math.floor(Math.random() * sourceArray.length)];
+
+            promptInstruction.innerText = currentMode === 'letter' ? 'Cari Huruf:' : 'Cari Angka:';
+            targetDisplay.innerText = currentTarget;
+            targetDisplay.style.color = colors[Math.floor(Math.random() * colors.length)];
+
+            let choices = [currentTarget];
+            while (choices.length < 3) {
+                const randomChoice = sourceArray[Math.floor(Math.random() * sourceArray.length)];
+                if (!choices.includes(randomChoice)) choices.push(randomChoice);
+            }
+            choices.sort(() => Math.random() - 0.5);
+
+            choices.forEach((choice, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerText = choice;
+                card.style.color = colors[idx % colors.length];
+                card.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    initAudio();
+                    handleSingleChoice(card, choice);
+                });
+                cardsContainer.appendChild(card);
+            });
+
+        } else if (currentMode === 'word') {
+            targetDisplay.style.display = 'none';
+            wordHintDisplay.style.display = 'block';
+            slotsContainer.style.display = 'flex';
+
+            currentTarget = wordList[Math.floor(Math.random() * wordList.length)];
+            wordProgress = [];
+
+            promptInstruction.innerText = 'Rangkai Kata:';
+            wordHintDisplay.innerText = currentTarget.split('').join(' ');
+
+            // Slot Huruf Kosong
+            for (let i = 0; i < currentTarget.length; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'word-slot';
+                slot.id = `slot-${i}`;
+                slot.innerText = '_';
+                slotsContainer.appendChild(slot);
+            }
+
+            // Acak Huruf
+            let scrambled = currentTarget.split('');
+            let attempts = 0;
+            while (scrambled.join('') === currentTarget && attempts < 10) {
+                scrambled.sort(() => Math.random() - 0.5);
+                attempts++;
+            }
+
+            scrambled.forEach((char, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerText = char;
+                card.style.color = colors[idx % colors.length];
+                card.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    initAudio();
+                    handleWordChoice(card, char);
+                });
+                cardsContainer.appendChild(card);
+            });
+        }
+
+        setTimeout(() => speakTarget(), 200);
+    }
+
+    function handleSingleChoice(cardElement, selectedVal) {
+        if (isProcessing) return;
+
+        if (selectedVal === currentTarget) {
+            isProcessing = true;
+            cardElement.classList.add('anim-correct');
+            playPopNote(783.99);
+            speakPraise();
+
+            stars += 1;
+            starDisplay.innerText = `⭐ ${stars}`;
+
+            setTimeout(() => advanceRound(), 1200);
+        } else {
+            cardElement.classList.add('anim-wrong');
+            playWrongSound();
+            setTimeout(() => cardElement.classList.remove('anim-wrong'), 400);
+        }
+    }
+
+    function handleWordChoice(cardElement, tappedChar) {
+        if (isProcessing) return;
+
+        const nextNeededChar = currentTarget[wordProgress.length];
+
+        if (tappedChar === nextNeededChar) {
+            const currentIndex = wordProgress.length;
+            wordProgress.push(tappedChar);
+
+            const slot = document.getElementById(`slot-${currentIndex}`);
+            if (slot) {
+                slot.innerText = tappedChar;
+                slot.classList.add('filled');
+            }
+
+            cardElement.classList.add('disabled');
+            playPopNote(400 + (wordProgress.length * 100));
+
+            if (wordProgress.length === currentTarget.length) {
+                isProcessing = true;
+                speakPraise();
+
+                stars += 1;
+                starDisplay.innerText = `⭐ ${stars}`;
+
+                setTimeout(() => advanceRound(), 1300);
+            }
+        } else {
+            cardElement.classList.add('anim-wrong');
+            playWrongSound();
+            setTimeout(() => cardElement.classList.remove('anim-wrong'), 400);
+        }
+    }
+
+    function advanceRound() {
+        if (currentRound < maxRounds) {
+            currentRound++;
+            setupRound();
+        } else {
+            showWinScreen();
+        }
+    }
+
+    function showWinScreen() {
+        playWinFanfare();
+        winOverlay.classList.remove('hidden');
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance("Hore! Kamu hebat sekali, semua soal berhasil diselesaikan!");
+            utterance.lang = 'id-ID';
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function showMainMenu() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        startOverlay.classList.remove('hidden');
+        winOverlay.classList.add('hidden');
+    }
+
+    function startGame(category) {
+        initAudio();
+        gameCategory = category;
+        currentRound = 1;
+        stars = 0;
+        startOverlay.classList.add('hidden');
+        winOverlay.classList.add('hidden');
+        setupRound();
+    }
+
+    modeSingleBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        startGame('single');
+    });
+
+    modeWordBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        startGame('word');
+    });
+
+    restartBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        startGame(gameCategory);
+    });
+
+    winHomeBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        showMainMenu();
+    });
+
+    homeBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        showMainMenu();
+    });
+
+    replaySoundBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        speakTarget();
+    });
+</script>
+</body>
+</html>
