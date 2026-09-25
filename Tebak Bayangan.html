@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tebak Bayangan Ceria</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FFF9C4 0%, #E1F5FE 100%);
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            padding-top: calc(var(--sat) + 8px);
+            padding-bottom: calc(var(--sab) + 55px); /* Safe zone navigasi bawah HP */
+            padding-left: calc(var(--sal) + 12px);
+            padding-right: calc(var(--sar) + 12px);
+        }
+
+        /* Header UI */
+        #header {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pill-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #0288D1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 2px solid #FFF;
+        }
+
+        .home-btn {
+            background: #FFD166;
+            border: 2px solid #FFF;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 17px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Display Box Bayangan (Shadow Box) */
+        #shadow-box {
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 360px;
+            padding: 20px 15px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            border: 4px solid #FFD166;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 190px;
+        }
+
+        #shadow-title {
+            font-size: 18px;
+            color: #E65100;
+            margin-bottom: 10px;
+        }
+
+        /* Format Siluet Bayangan Hitam */
+        #shadow-emoji {
+            font-size: clamp(70px, 18vw, 95px);
+            filter: grayscale(100%) brightness(0); /* Menjadi Siluet Hitam Pekat */
+            opacity: 0.88;
+            transition: transform 0.2s ease, filter 0.3s ease;
+        }
+
+        #shadow-emoji.revealed {
+            filter: none !important; /* Terbuka Berwarna saat Benar */
+            animation: bouncePop 0.5s ease;
+        }
+
+        @keyframes bouncePop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Pilihan Gambar Berwarna */
+        #cards-container {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card {
+            flex: 1;
+            height: 110px;
+            max-width: 110px;
+            min-width: 0;
+            background: #FFFFFF;
+            border-radius: 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 6px 0px #CBD5E1, 0 8px 12px rgba(0,0,0,0.12);
+            border: 3px solid #FFF;
+            cursor: pointer;
+            padding: 6px;
+            transition: transform 0.08s ease;
+        }
+
+        .card-emoji {
+            font-size: clamp(40px, 11vw, 50px);
+            filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.12));
+        }
+
+        .card-label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #37474F;
+            margin-top: 4px;
+        }
+
+        .card:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #CBD5E1, 0 4px 6px rgba(0,0,0,0.12);
+        }
+
+        /* Bottom Control Button */
+        #controls-box {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sound-replay-btn {
+            background: #4ECDC4;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 10px 22px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+        }
+
+        .sound-replay-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Overlays (Start & Ending) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(255, 248, 225, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+        }
+
+        .overlay-card {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 5px solid #FFD166;
+            width: 92%;
+            max-width: 360px;
+        }
+
+        .title {
+            font-size: 26px;
+            color: #E65100;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 18px;
+        }
+
+        .menu-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .level-btn {
+            background: #FF4081;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 12px 16px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .level-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Animations Koreksi */
+        @keyframes correctBounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        .anim-correct {
+            animation: correctBounce 0.4s ease;
+            background: #C7F9CC !important;
+            border-color: #57CC99 !important;
+        }
+
+        .anim-wrong {
+            animation: wrongShake 0.4s ease;
+            background: #FFCCD5 !important;
+            border-color: #FF4D6D !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header -->
+    <div id="header">
+        <button class="home-btn" id="homeBtn" title="Menu Utama">🏠 Menu</button>
+        <div class="pill-box" id="levelDisplay">Lvl 1: Hewan</div>
+        <div class="pill-box" id="starDisplay">⭐ 0</div>
+    </div>
+
+    <!-- Kotak Display Bayangan Hitam -->
+    <div id="shadow-box">
+        <div id="shadow-title">Bayangan Apakah Ini?</div>
+        <div id="shadow-emoji">🐱</div>
+    </div>
+
+    <!-- Pilihan 3 Gambar Berwarna -->
+    <div id="cards-container"></div>
+
+    <!-- Bottom Controls -->
+    <div id="controls-box">
+        <button class="sound-replay-btn" id="replaySoundBtn">🔊 Dengar Suara</button>
+    </div>
+
+    <!-- Screen Menu Pilih Level (1-10) -->
+    <div id="start-overlay" class="overlay">
+        <div class="overlay-card">
+            <div style="font-size: 55px; margin-bottom: 5px;">👤 Tebak Bayangan 👤</div>
+            <div class="title">Pilih Level</div>
+            <div class="subtitle">Cocokkan gambar dengan bayangannya!</div>
+            
+            <div class="menu-btn-group" id="levelBtnContainer"></div>
+        </div>
+    </div>
+
+    <!-- Screen Kemenangan Level -->
+    <div id="win-overlay" class="overlay hidden">
+        <div class="overlay-card">
+            <div style="font-size: 60px; margin-bottom: 8px;">🏆</div>
+            <div class="title" style="color: #00BFA5;" id="winTitle">LEVEL SELESAI!</div>
+            <div class="subtitle" id="winSubtitle">Pintar sekali, kamu berhasil menebak semua bayangan! 🎉</div>
+            
+            <div class="menu-btn-group">
+                <button class="level-btn" id="nextLevelBtn" style="justify-content: center;">LEVEL SELANJUTNYA ➡️</button>
+                <button class="level-btn" id="winHomeBtn" style="background: #0288D1; justify-content: center;">MENU UTAMA 🏠</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Data 10 Level Bertema
+    const levelsData = [
+        { level: 1, name: 'Hewan Lucu', items: [
+            { label: 'Kucing', emoji: '🐱' }, { label: 'Anjing', emoji: '🐶' }, { label: 'Kelinci', emoji: '🐰' },
+            { label: 'Sapi', emoji: '🐮' }, { label: 'Panda', emoji: '🐼' }, { label: 'Bebek', emoji: '🦆' },
+            { label: 'Katak', emoji: '🐸' }, { label: 'Gajah', emoji: '🐘' }, { label: 'Singa', emoji: '🦁' }, { label: 'Burung', emoji: '🐦' }
+        ]},
+        { level: 2, name: 'Buah Segar', items: [
+            { label: 'Apel', emoji: '🍎' }, { label: 'Pisang', emoji: '🍌' }, { label: 'Stroberi', emoji: '🍓' },
+            { label: 'Jeruk', emoji: '🍊' }, { label: 'Semangka', emoji: '🍉' }, { label: 'Anggur', emoji: '🍇' },
+            { label: 'Nanas', emoji: '🍍' }, { label: 'Alpukat', emoji: '🥑' }, { label: 'Ceri', emoji: '🍒' }, { label: 'Melon', emoji: '🍈' }
+        ]},
+        { level: 3, name: 'Kendaraan', items: [
+            { label: 'Mobil', emoji: '🚗' }, { label: 'Pesawat', emoji: '✈️' }, { label: 'Kapal', emoji: '🚢' },
+            { label: 'Sepeda', emoji: '🚲' }, { label: 'Kereta', emoji: '🚂' }, { label: 'Helikopter', emoji: '🚁' },
+            { label: 'Roket', emoji: '🚀' }, { label: 'Tractor', emoji: '🚜' }, { label: 'Ambulans', emoji: '🚑' }, { label: 'Motor', emoji: '🛵' }
+        ]},
+        { level: 4, name: 'Sayuran', items: [
+            { label: 'Wortel', emoji: '🥕' }, { label: 'Jagung', emoji: '🌽' }, { label: 'Brokoli', emoji: '🥦' },
+            { label: 'Terong', emoji: '🍆' }, { label: 'Tomat', emoji: '🍅' }, { label: 'Jamur', emoji: '🍄' },
+            { label: 'Mentimun', emoji: '🥒' }, { label: 'Cabai', emoji: '🫑' }, { label: 'Bawang', emoji: '🧅' }, { label: 'Kentang', emoji: '🥔' }
+        ]},
+        { level: 5, name: 'Mainan & Benda', items: [
+            { label: 'Balon', emoji: '🎈' }, { label: 'Kado', emoji: '🎁' }, { label: 'Boneka', emoji: '🧸' },
+            { label: 'Robot', emoji: '🤖' }, { label: 'Bola', emoji: '⚽' }, { label: 'Kacamata', emoji: '👓' },
+            { label: 'Jam', emoji: '⏰' }, { label: 'Payung', emoji: '☂️' }, { label: 'Senter', emoji: '🔦' }, { label: 'Tas', emoji: '🎒' }
+        ]},
+        { level: 6, name: 'Makanan', items: [
+            { label: 'Kue', emoji: '🍰' }, { label: 'Es Krim', emoji: '🍦' }, { label: 'Donat', emoji: '🍩' },
+            { label: 'Pizza', emoji: '🍕' }, { label: 'Burger', emoji: '🍔' }, { label: 'Kentang', emoji: '🍟' },
+            { label: 'Permen', emoji: '🍬' }, { label: 'Roti', emoji: '🍞' }, { label: 'Telur', emoji: '🍳' }, { label: 'Cokelat', emoji: '🍫' }
+        ]},
+        { level: 7, name: 'Ekspresi Wajah', items: [
+            { label: 'Senang', emoji: '😀' }, { label: 'Tertawa', emoji: '😂' }, { label: 'Suka', emoji: '😍' },
+            { label: 'Pesta', emoji: '🥳' }, { label: 'Kaget', emoji: '😲' }, { label: 'Hantu', emoji: '👻' },
+            { label: 'Kacamata', emoji: '😎' }, { label: 'Kucing', emoji: '😺' }, { label: 'Robot', emoji: '🤖' }, { label: 'Lucu', emoji: '🤪' }
+        ]},
+        { level: 8, name: 'Bentuk & Simbol', items: [
+            { label: 'Bintang', emoji: '⭐' }, { label: 'Merah', emoji: '🔴' }, { label: 'Biru', emoji: '🟦' },
+            { label: 'Kuning', emoji: '🔺' }, { label: 'Hati', emoji: '💛' }, { label: 'Berlian', emoji: '💎' },
+            { label: 'Hijau', emoji: '🟢' }, { label: 'Ungu', emoji: '💜' }, { label: 'Oranye', emoji: '🔶' }, { label: 'Hitam', emoji: '⬛' }
+        ]},
+        { level: 9, name: 'Alam & Cuaca', items: [
+            { label: 'Matahari', emoji: '☀️' }, { label: 'Bulan', emoji: '🌙' }, { label: 'Pelangi', emoji: '🌈' },
+            { label: 'Hujan', emoji: '🌧️' }, { label: 'Pohon', emoji: '🌲' }, { label: 'Bunga', emoji: '🌺' },
+            { label: 'Awan', emoji: '☁️' }, { label: 'Petir', emoji: '⚡' }, { label: 'Api', emoji: '🔥' }, { label: 'Ombak', emoji: '🌊' }
+        ]},
+        { level: 10, name: 'Super Campuran', items: [
+            { label: 'Kucing', emoji: '🐱' }, { label: 'Apel', emoji: '🍎' }, { label: 'Mobil', emoji: '🚗' },
+            { label: 'Pizza', emoji: '🍕' }, { label: 'Bintang', emoji: '⭐' }, { label: 'Es Krim', emoji: '🍦' },
+            { label: 'Gajah', emoji: '🐘' }, { label: 'Roket', emoji: '🚀' }, { label: 'Kue', emoji: '🍰' }, { label: 'Balon', emoji: '🎈' }
+        ]}
+    ];
+
+    let currentLevelIdx = 0;
+    let currentRound = 1;
+    const maxRounds = 5; // 5 Soal per level
+    let stars = 0;
+    let currentTarget = null;
+    let isProcessing = false;
+
+    let audioCtx = null;
+
+    // DOM Elements
+    const shadowEmoji = document.getElementById('shadow-emoji');
+    const cardsContainer = document.getElementById('cards-container');
+
+    const startOverlay = document.getElementById('start-overlay');
+    const winOverlay = document.getElementById('win-overlay');
+    const levelBtnContainer = document.getElementById('levelBtnContainer');
+    const levelDisplay = document.getElementById('levelDisplay');
+    const starDisplay = document.getElementById('starDisplay');
+
+    const replaySoundBtn = document.getElementById('replaySoundBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    const winHomeBtn = document.getElementById('winHomeBtn');
+    const winTitle = document.getElementById('winTitle');
+    const winSubtitle = document.getElementById('winSubtitle');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playPopNote(freq = 523.25) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } catch (e) {}
+    }
+
+    function playWrongSound() {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        } catch (e) {}
+    }
+
+    function playWinFanfare() {
+        if (!audioCtx) return;
+        try {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const startTime = audioCtx.currentTime + (idx * 0.12);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.5, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.35);
+            });
+        } catch (e) {}
+    }
+
+    function speakTarget() {
+        if ('speechSynthesis' in window && currentTarget) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(`Yang mana bayangan ${currentTarget.label}?`);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function speakPraise() {
+        if ('speechSynthesis' in window && currentTarget) {
+            window.speechSynthesis.cancel();
+            const praises = ['Pintar!', 'Hebat!', 'Bagus sekali!', 'Benar sekali!'];
+            const randomPraise = praises[Math.floor(Math.random() * praises.length)];
+            const utterance = new SpeechSynthesisUtterance(`Benar, ini ${currentTarget.label}! ${randomPraise}`);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function setupRound() {
+        isProcessing = false;
+        cardsContainer.innerHTML = '';
+        shadowEmoji.classList.remove('revealed');
+
+        const lvl = levelsData[currentLevelIdx];
+        levelDisplay.innerText = `Lvl ${lvl.level}: ${lvl.name} (${currentRound}/${maxRounds})`;
+        starDisplay.innerText = `⭐ ${stars}`;
+
+        // Pilih Target Jawaban Benar
+        currentTarget = lvl.items[Math.floor(Math.random() * lvl.items.length)];
+        shadowEmoji.innerText = currentTarget.emoji;
+
+        // Pilih 2 Pengecoh
+        let choices = [currentTarget];
+        while (choices.length < 3) {
+            const randomItem = lvl.items[Math.floor(Math.random() * lvl.items.length)];
+            if (!choices.some(a => a.label === randomItem.label)) {
+                choices.push(randomItem);
+            }
+        }
+
+        // Acak Posisi Pilihan
+        choices.sort(() => Math.random() - 0.5);
+
+        // Render Kartu Pilihan
+        choices.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-emoji">${item.emoji}</div>
+                <div class="card-label">${item.label}</div>
+            `;
+
+            card.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                initAudio();
+                handleChoice(card, item);
+            });
+
+            cardsContainer.appendChild(card);
+        });
+
+        setTimeout(() => speakTarget(), 200);
+    }
+
+    function handleChoice(cardElement, selectedItem) {
+        if (isProcessing) return;
+
+        // KOREKSI OTOMATIS: Cek Apakah Pilihan Sama dengan Target
+        if (selectedItem.label === currentTarget.label) {
+            isProcessing = true;
+            cardElement.classList.add('anim-correct');
+            shadowEmoji.classList.add('revealed'); // Buka Siluet Hitam Menjadi Berwarna!
+
+            playPopNote(783.99);
+            speakPraise();
+
+            stars += 10;
+            starDisplay.innerText = `⭐ ${stars}`;
+
+            setTimeout(() => advanceRound(), 1400);
+        } else {
+            cardElement.classList.add('anim-wrong');
+            playWrongSound();
+            setTimeout(() => cardElement.classList.remove('anim-wrong'), 400);
+        }
+    }
+
+    function advanceRound() {
+        if (currentRound < maxRounds) {
+            currentRound++;
+            setupRound();
+        } else {
+            onLevelComplete();
+        }
+    }
+
+    function onLevelComplete() {
+        playWinFanfare();
+        winOverlay.classList.remove('hidden');
+
+        if (currentLevelIdx < levelsData.length - 1) {
+            winTitle.innerText = "LEVEL SELESAI!";
+            winSubtitle.innerText = `Pintar sekali, kamu berhasil menyelesaikan Level ${levelsData[currentLevelIdx].level}! 🎉`;
+            nextLevelBtn.style.display = "flex";
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(`Hore! Level ${levelsData[currentLevelIdx].level} selesai! Kamu hebat sekali!`);
+                utterance.lang = 'id-ID';
+                window.speechSynthesis.speak(utterance);
+            }
+        } else {
+            winTitle.innerText = "🏆 SELAMAT! TAMAT! 🏆";
+            winSubtitle.innerText = "Luar biasa, kamu sudah menyelesaikan SEMUA 10 LEVEL! 🎉";
+            nextLevelBtn.style.display = "none";
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance("Hore! Luar biasa, kamu berhasil menamatkan semua level!");
+                utterance.lang = 'id-ID';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    }
+
+    function renderLevelMenu() {
+        levelBtnContainer.innerHTML = '';
+        levelsData.forEach((lvl, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'level-btn';
+            btn.innerHTML = `<span>Lvl ${lvl.level}: ${lvl.name}</span> <span>${lvl.items[0].emoji}</span>`;
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                startLevel(idx);
+            });
+            levelBtnContainer.appendChild(btn);
+        });
+    }
+
+    function startLevel(idx) {
+        initAudio();
+        currentLevelIdx = idx;
+        currentRound = 1;
+
+        startOverlay.classList.add('hidden');
+        winOverlay.classList.add('hidden');
+
+        setupRound();
+    }
+
+    function showMainMenu() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        startOverlay.classList.remove('hidden');
+        winOverlay.classList.add('hidden');
+    }
+
+    // Event Listeners
+    replaySoundBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        speakTarget();
+    });
+
+    homeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+    winHomeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+
+    nextLevelBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (currentLevelIdx < levelsData.length - 1) {
+            startLevel(currentLevelIdx + 1);
+        }
+    });
+
+    // Initial Setup
+    renderLevelMenu();
+</script>
+</body>
+</html>
