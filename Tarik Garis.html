@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tarik Garis Ceria</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #E0F7FA 0%, #FFF3E0 100%);
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: calc(var(--sat) + 8px);
+            padding-bottom: calc(var(--sab) + 55px); /* Safe zone navigasi HP */
+            padding-left: calc(var(--sal) + 10px);
+            padding-right: calc(var(--sar) + 10px);
+        }
+
+        /* Header UI */
+        #header {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pill-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #00897B;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 2px solid #FFF;
+        }
+
+        .home-btn {
+            background: #FFD166;
+            border: 2px solid #FFF;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 17px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Area Game Match Line */
+        #match-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            flex: 1;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #lineCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            width: 42%;
+            z-index: 5;
+        }
+
+        .item-card {
+            position: relative;
+            background: #FFFFFF;
+            border: 3px solid #4DD0E1;
+            border-radius: 18px;
+            height: 18%;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            transition: transform 0.1s ease;
+        }
+
+        .column-left .item-card {
+            justify-content: flex-start;
+        }
+
+        .column-right .item-card {
+            justify-content: flex-end;
+            border-color: #FFB74D;
+        }
+
+        .item-emoji {
+            font-size: clamp(28px, 8vw, 36px);
+        }
+
+        .item-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #37474F;
+            margin: 0 6px;
+        }
+
+        /* Bulatan Node Titik Hubung */
+        .dot-node {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #FF4081;
+            border: 3px solid #FFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .column-left .dot-node {
+            right: -10px;
+        }
+
+        .column-right .dot-node {
+            left: -10px;
+            background: #29B6F6;
+        }
+
+        .item-card.matched {
+            background: #E8F5E9;
+            border-color: #66BB6A;
+            opacity: 0.9;
+        }
+
+        .item-card.matched .dot-node {
+            background: #4CAF50;
+        }
+
+        /* Bottom Control Buttons */
+        #controls-box {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ctrl-btn {
+            flex: 1;
+            background: #FF7043;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 10px 14px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .ctrl-btn.secondary {
+            background: #00BFA5;
+        }
+
+        .ctrl-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Overlays (Start & Ending) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(224, 247, 250, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+        }
+
+        .overlay-card {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 5px solid #4DD0E1;
+            width: 92%;
+            max-width: 360px;
+        }
+
+        .title {
+            font-size: 26px;
+            color: #00897B;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 18px;
+        }
+
+        .menu-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .level-btn {
+            background: #FF4081;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 12px 16px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .level-btn:active {
+            transform: scale(0.96);
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .anim-wrong {
+            animation: wrongShake 0.4s ease;
+            border-color: #FF5252 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header -->
+    <div id="header">
+        <button class="home-btn" id="homeBtn" title="Menu Utama">🏠 Menu</button>
+        <div class="pill-box" id="levelDisplay">Lvl 1: Hewan</div>
+        <div class="pill-box" id="starDisplay">⭐ 0</div>
+    </div>
+
+    <!-- Area Match Lines (Kiri vs Kanan) -->
+    <div id="match-wrapper">
+        <canvas id="lineCanvas"></canvas>
+        <div class="column column-left" id="leftCol"></div>
+        <div class="column column-right" id="rightCol"></div>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div id="controls-box">
+        <button class="ctrl-btn" id="resetBtn">🔄 Ulang Level</button>
+        <button class="ctrl-btn secondary" id="speakBtn">🔊 Dengar Nama</button>
+    </div>
+
+    <!-- Screen Menu Pilih Level (1-10) -->
+    <div id="start-overlay" class="overlay">
+        <div class="overlay-card">
+            <div style="font-size: 55px; margin-bottom: 5px;">✏️ Tarik Garis ✏️</div>
+            <div class="title">Pilih Level</div>
+            <div class="subtitle">Tarik garis dari gambar kiri ke kanan!</div>
+            
+            <div class="menu-btn-group" id="levelBtnContainer"></div>
+        </div>
+    </div>
+
+    <!-- Screen Kemenangan Level -->
+    <div id="win-overlay" class="overlay hidden">
+        <div class="overlay-card">
+            <div style="font-size: 60px; margin-bottom: 8px;">🏆</div>
+            <div class="title" style="color: #00BFA5;" id="winTitle">LEVEL SELESAI!</div>
+            <div class="subtitle" id="winSubtitle">Pintar sekali, semua garis sudah terhubung! 🎉</div>
+            
+            <div class="menu-btn-group">
+                <button class="level-btn" id="nextLevelBtn" style="justify-content: center;">LEVEL SELANJUTNYA ➡️</button>
+                <button class="level-btn" id="winHomeBtn" style="background: #00897B; justify-content: center;">MENU UTAMA 🏠</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Data 10 Level (Masing-masing 5 Pasang)
+    const levelsData = [
+        { level: 1, name: 'Hewan Darat', items: [
+            { id: 'anjing', label: 'Anjing', emoji: '🐶' },
+            { id: 'kucing', label: 'Kucing', emoji: '🐱' },
+            { id: 'semut', label: 'Semut', emoji: '🐜' },
+            { id: 'sapi', label: 'Sapi', emoji: '🐮' },
+            { id: 'kelinci', label: 'Kelinci', emoji: '🐰' }
+        ]},
+        { level: 2, name: 'Buah-buahan', items: [
+            { id: 'apel', label: 'Apel', emoji: '🍎' },
+            { id: 'pisang', label: 'Pisang', emoji: '🍌' },
+            { id: 'jeruk', label: 'Jeruk', emoji: '🍊' },
+            { id: 'stroberi', label: 'Stroberi', emoji: '🍓' },
+            { id: 'anggur', label: 'Anggur', emoji: '🍇' }
+        ]},
+        { level: 3, name: 'Kendaraan', items: [
+            { id: 'mobil', label: 'Mobil', emoji: '🚗' },
+            { id: 'pesawat', label: 'Pesawat', emoji: '✈️' },
+            { id: 'kapal', label: 'Kapal', emoji: '🚢' },
+            { id: 'sepeda', label: 'Sepeda', emoji: '🚲' },
+            { id: 'kereta', label: 'Kereta', emoji: '🚂' }
+        ]},
+        { level: 4, name: 'Sayuran', items: [
+            { id: 'wortel', label: 'Wortel', emoji: '🥕' },
+            { id: 'jagung', label: 'Jagung', emoji: '🌽' },
+            { id: 'brokoli', label: 'Brokoli', emoji: '🥦' },
+            { id: 'terong', label: 'Terong', emoji: '🍆' },
+            { id: 'tomat', label: 'Tomat', emoji: '🍅' }
+        ]},
+        { level: 5, name: 'Sekolah', items: [
+            { id: 'pensil', label: 'Pensil', emoji: '✏️' },
+            { id: 'buku', label: 'Buku', emoji: '📖' },
+            { id: 'tas', label: 'Tas', emoji: '🎒' },
+            { id: 'gunting', label: 'Gunting', emoji: '✂️' },
+            { id: 'penggaris', label: 'Penggaris', emoji: '📐' }
+        ]},
+        { level: 6, name: 'Makanan', items: [
+            { id: 'kue', label: 'Kue', emoji: '🍰' },
+            { id: 'eskrim', label: 'Es Krim', emoji: '🍦' },
+            { id: 'donat', label: 'Donat', emoji: '🍩' },
+            { id: 'pizza', label: 'Pizza', emoji: '🍕' },
+            { id: 'burger', label: 'Burger', emoji: '🍔' }
+        ]},
+        { level: 7, name: 'Bentuk & Warna', items: [
+            { id: 'bintang', label: 'Bintang', emoji: '⭐' },
+            { id: 'lingkaran', label: 'Merah', emoji: '🔴' },
+            { id: 'kotak', label: 'Biru', emoji: '🟦' },
+            { id: 'segitiga', label: 'Kuning', emoji: '🔺' },
+            { id: 'hati', label: 'Hati', emoji: '💛' }
+        ]},
+        { level: 8, name: 'Ekspresi Wajah', items: [
+            { id: 'senang', label: 'Senang', emoji: '😀' },
+            { id: 'tertawa', label: 'Tertawa', emoji: '😂' },
+            { id: 'cinta', label: 'Suka', emoji: '😍' },
+            { id: 'kaget', label: 'Kaget', emoji: '😲' },
+            { id: 'pesta', label: 'Pesta', emoji: '🥳' }
+        ]},
+        { level: 9, name: 'Alam & Cuaca', items: [
+            { id: 'matahari', label: 'Matahari', emoji: '☀️' },
+            { id: 'hujan', label: 'Hujan', emoji: '🌧️' },
+            { id: 'pelangi', label: 'Pelangi', emoji: '🌈' },
+            { id: 'bulan', label: 'Bulan', emoji: '🌙' },
+            { id: 'pohon', label: 'Pohon', emoji: '🌲' }
+        ]},
+        { level: 10, name: 'Hewan Laut & Udara', items: [
+            { id: 'ikan', label: 'Ikan', emoji: '🐟' },
+            { id: 'burung', label: 'Burung', emoji: '🐦' },
+            { id: 'penyu', label: 'Penyu', emoji: '🐢' },
+            { id: 'kupu', label: 'Kupu-kupu', emoji: '🦋' },
+            { id: 'gurita', label: 'Gurita', emoji: '🐙' }
+        ]}
+    ];
+
+    let currentLevelIdx = 0;
+    let stars = 0;
+    let matchedCount = 0;
+    let leftItems = [];
+    let rightItems = [];
+    let connectedPairs = []; // Array {leftId, rightId}
+
+    let activeStartCard = null; // {side: 'left'|'right', elem, id}
+    let currentDragPos = null; // {x, y}
+    let isDragging = false;
+
+    let audioCtx = null;
+
+    // DOM Elements
+    const matchWrapper = document.getElementById('match-wrapper');
+    const lineCanvas = document.getElementById('lineCanvas');
+    const ctx = lineCanvas.getContext('2d');
+
+    const leftCol = document.getElementById('leftCol');
+    const rightCol = document.getElementById('rightCol');
+
+    const startOverlay = document.getElementById('start-overlay');
+    const winOverlay = document.getElementById('win-overlay');
+    const levelBtnContainer = document.getElementById('levelBtnContainer');
+    const levelDisplay = document.getElementById('levelDisplay');
+    const starDisplay = document.getElementById('starDisplay');
+
+    const resetBtn = document.getElementById('resetBtn');
+    const speakBtn = document.getElementById('speakBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    const winHomeBtn = document.getElementById('winHomeBtn');
+    const winTitle = document.getElementById('winTitle');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        try {
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            if (type === 'correct') {
+                [523.25, 659.25, 783.99].forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.type = 'sine';
+                    o.frequency.setValueAtTime(freq, now + (idx * 0.08));
+                    g.gain.setValueAtTime(0.3, now + (idx * 0.08));
+                    g.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.08) + 0.18);
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.start(now + (idx * 0.08)); o.stop(now + (idx * 0.08) + 0.18);
+                });
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.25);
+            } else if (type === 'win') {
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.type = 'triangle';
+                    o.frequency.setValueAtTime(freq, now + (idx * 0.12));
+                    g.gain.setValueAtTime(0.4, now + (idx * 0.12));
+                    g.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.12) + 0.35);
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.start(now + (idx * 0.12)); o.stop(now + (idx * 0.12) + 0.35);
+                });
+            }
+        } catch (e) {}
+    }
+
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function speakPraise() {
+        const praises = ['Pintar!', 'Hebat!', 'Bagus sekali!', 'Benar sekali!'];
+        const randomPraise = praises[Math.floor(Math.random() * praises.length)];
+        speakText(randomPraise);
+    }
+
+    function resizeCanvas() {
+        const rect = matchWrapper.getBoundingClientRect();
+        lineCanvas.width = rect.width;
+        lineCanvas.height = rect.height;
+        drawAllLines();
+    }
+
+    // Mendapatkan Koordinat Titik Hubung Node
+    function getNodeCenter(cardElem, side) {
+        const wrapperRect = matchWrapper.getBoundingClientRect();
+        const dotElem = cardElem.querySelector('.dot-node');
+        const dotRect = dotElem.getBoundingClientRect();
+
+        return {
+            x: dotRect.left + (dotRect.width / 2) - wrapperRect.left,
+            y: dotRect.top + (dotRect.height / 2) - wrapperRect.top
+        };
+    }
+
+    // Menggambar Semua Garis Permanen & Garis Sementara yang Sedang Ditarik
+    function drawAllLines() {
+        ctx.clearRect(0, 0, lineCanvas.width, lineCanvas.height);
+
+        // 1. Gambar Garis Permanen (Benar)
+        connectedPairs.forEach(pair => {
+            const leftCard = leftCol.querySelector(`[data-id="${pair.leftId}"]`);
+            const rightCard = rightCol.querySelector(`[data-id="${pair.rightId}"]`);
+
+            if (leftCard && rightCard) {
+                const p1 = getNodeCenter(leftCard, 'left');
+                const p2 = getNodeCenter(rightCard, 'right');
+
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+        });
+
+        // 2. Gambar Garis Karet (Sedang Ditarik Jari)
+        if (isDragging && activeStartCard && currentDragPos) {
+            const p1 = getNodeCenter(activeStartCard.elem, activeStartCard.side);
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(currentDragPos.x, currentDragPos.y);
+            ctx.strokeStyle = '#FF4081';
+            ctx.lineWidth = 5;
+            ctx.setLineDash([8, 8]);
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    }
+
+    // Penanganan Sentuhan (Touch Dragging)
+    function onPointerDown(e, side, cardElem, id) {
+        e.preventDefault();
+        initAudio();
+
+        // Jangan proses jika kartu sudah terhubung
+        if (cardElem.classList.contains('matched')) return;
+
+        isDragging = true;
+        activeStartCard = { side, elem: cardElem, id };
+
+        const wrapperRect = matchWrapper.getBoundingClientRect();
+        currentDragPos = {
+            x: e.clientX - wrapperRect.left,
+            y: e.clientY - wrapperRect.top
+        };
+
+        drawAllLines();
+    }
+
+    function onPointerMove(e) {
+        if (!isDragging || !activeStartCard) return;
+        e.preventDefault();
+
+        const wrapperRect = matchWrapper.getBoundingClientRect();
+        currentDragPos = {
+            x: e.clientX - wrapperRect.left,
+            y: e.clientY - wrapperRect.top
+        };
+
+        drawAllLines();
+    }
+
+    function onPointerUp(e) {
+        if (!isDragging || !activeStartCard) return;
+        e.preventDefault();
+
+        const x = e.clientX;
+        const y = e.clientY;
+
+        // Cari kartu di seberang yang berada di bawah posisi lepas jari
+        const targetSide = activeStartCard.side === 'left' ? 'right' : 'left';
+        const targetCol = targetSide === 'left' ? leftCol : rightCol;
+        const targetCards = targetCol.querySelectorAll('.item-card');
+
+        let hitCard = null;
+        targetCards.forEach(card => {
+            const rect = card.getBoundingClientRect();
+            if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                hitCard = card;
+            }
+        });
+
+        if (hitCard && !hitCard.classList.contains('matched')) {
+            const targetId = hitCard.dataset.id;
+            const startId = activeStartCard.id;
+
+            // KOREKSI OTOMATIS: Cek Apakah ID Kiri & Kanan Sama
+            if (startId === targetId) {
+                // BENAR!
+                const leftCard = activeStartCard.side === 'left' ? activeStartCard.elem : hitCard;
+                const rightCard = activeStartCard.side === 'right' ? activeStartCard.elem : hitCard;
+
+                leftCard.classList.add('matched');
+                rightCard.classList.add('matched');
+
+                connectedPairs.push({ leftId: startId, rightId: targetId });
+                matchedCount++;
+                stars += 10;
+                starDisplay.innerText = `⭐ ${stars}`;
+
+                playSound('correct');
+                speakPraise();
+
+                if (matchedCount === 5) {
+                    setTimeout(() => onLevelComplete(), 600);
+                }
+            } else {
+                // SALAH!
+                playSound('wrong');
+                activeStartCard.elem.classList.add('anim-wrong');
+                hitCard.classList.add('anim-wrong');
+
+                setTimeout(() => {
+                    activeStartCard.elem.classList.remove('anim-wrong');
+                    hitCard.classList.remove('anim-wrong');
+                }, 400);
+            }
+        }
+
+        isDragging = false;
+        activeStartCard = null;
+        currentDragPos = null;
+        drawAllLines();
+    }
+
+    function setupLevel(idx) {
+        currentLevelIdx = idx;
+        matchedCount = 0;
+        connectedPairs = [];
+        isDragging = false;
+        activeStartCard = null;
+
+        const lvl = levelsData[idx];
+        levelDisplay.innerText = `Lvl ${lvl.level}: ${lvl.name}`;
+        starDisplay.innerText = `⭐ ${stars}`;
+
+        // Kiri: Urutan Asli
+        leftItems = [...lvl.items];
+        // Kanan: Diacak
+        rightItems = [...lvl.items].sort(() => Math.random() - 0.5);
+
+        renderCards();
+        setTimeout(resizeCanvas, 50);
+    }
+
+    function renderCards() {
+        leftCol.innerHTML = '';
+        rightCol.innerHTML = '';
+
+        // Render Kolom Kiri
+        leftItems.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.dataset.id = item.id;
+            card.innerHTML = `
+                <span class="item-emoji">${item.emoji}</span>
+                <span class="item-label">${item.label}</span>
+                <div class="dot-node"></div>
+            `;
+
+            card.addEventListener('pointerdown', (e) => onPointerdownCard(e, 'left', card, item.id));
+            leftCol.appendChild(card);
+        });
+
+        // Render Kolom Kanan
+        rightItems.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.dataset.id = item.id;
+            card.innerHTML = `
+                <div class="dot-node"></div>
+                <span class="item-label">${item.label}</span>
+                <span class="item-emoji">${item.emoji}</span>
+            `;
+
+            card.addEventListener('pointerdown', (e) => onPointerdownCard(e, 'right', card, item.id));
+            rightCol.appendChild(card);
+        });
+
+        ctx.clearRect(0, 0, lineCanvas.width, lineCanvas.height);
+    }
+
+    function onPointerdownCard(e, side, card, id) {
+        onPointerDown(e, side, card, id);
+    }
+
+    function speakAllNames() {
+        initAudio();
+        const names = leftItems.map(i => i.label).join(', ');
+        speakText(`Di level ini ada: ${names}`);
+    }
+
+    function onLevelComplete() {
+        playSound('win');
+        winOverlay.classList.remove('hidden');
+
+        if (currentLevelIdx < levelsData.length - 1) {
+            winTitle.innerText = "LEVEL SELESAI!";
+            winSubtitle.innerText = `Pintar sekali, kamu berhasil menyelesaikan Level ${levelsData[currentLevelIdx].level}! 🎉`;
+            nextLevelBtn.style.display = "flex";
+            speakText(`Hore! Level ${levelsData[currentLevelIdx].level} selesai! Kamu hebat sekali!`);
+        } else {
+            winTitle.innerText = "🏆 SELAMAT! TAMAT! 🏆";
+            winSubtitle.innerText = "Luar biasa, kamu sudah menyelesaikan SEMUA 10 LEVEL! 🎉";
+            nextLevelBtn.style.display = "none";
+            speakText("Hore! Luar biasa, kamu berhasil menamatkan semua level!");
+        }
+    }
+
+    function renderLevelMenu() {
+        levelBtnContainer.innerHTML = '';
+        levelsData.forEach((lvl, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'level-btn';
+            btn.innerHTML = `<span>Lvl ${lvl.level}: ${lvl.name}</span> <span>${lvl.items[0].emoji}</span>`;
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                startLevel(idx);
+            });
+            levelBtnContainer.appendChild(btn);
+        });
+    }
+
+    function startLevel(idx) {
+        initAudio();
+        startOverlay.classList.add('hidden');
+        winOverlay.classList.add('hidden');
+
+        setupLevel(idx);
+        speakText(`Level ${levelsData[idx].level}, ${levelsData[idx].name}`);
+    }
+
+    function showMainMenu() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        startOverlay.classList.remove('hidden');
+        winOverlay.classList.add('hidden');
+    }
+
+    // Window Pointer Listeners untuk Smooth Dragging Line
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+
+    // Event Listeners
+    resetBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); setupLevel(currentLevelIdx); });
+    speakBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); speakAllNames(); });
+
+    homeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+    winHomeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+
+    nextLevelBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (currentLevelIdx < levelsData.length - 1) {
+            startLevel(currentLevelIdx + 1);
+        }
+    });
+
+    window.addEventListener('resize', () => setTimeout(resizeCanvas, 100));
+
+    // Initial Setup
+    renderLevelMenu();
+</script>
+</body>
+</html>

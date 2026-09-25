@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Belajar Menulis Bebas</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        :root {
+            --sat: env(safe-area-inset-top, 10px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 10px);
+            --sar: env(safe-area-inset-right, 10px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #E1F5FE 0%, #FFF3E0 100%);
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            padding-top: calc(var(--sat) + 8px);
+            padding-bottom: calc(var(--sab) + 55px); /* Safe zone navigasi bawah HP */
+            padding-left: calc(var(--sal) + 12px);
+            padding-right: calc(var(--sar) + 12px);
+        }
+
+        /* Top Header */
+        #header {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pill-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #0288D1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border: 2px solid #FFF;
+        }
+
+        .home-btn {
+            background: #FFD166;
+            border: 2px solid #FFF;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Prompt Box (Panduan Huruf/Angka di Atas) */
+        #prompt-box {
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 360px;
+            padding: 10px 18px;
+            border-radius: 22px;
+            text-align: center;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+            border: 4px solid #FFD166;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .prompt-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .prompt-label {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .prompt-char {
+            font-size: 52px;
+            font-weight: 900;
+            color: #FF4081;
+            line-height: 1;
+        }
+
+        .sound-replay-btn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+            cursor: pointer;
+        }
+
+        .sound-replay-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Canvas Box (Papan Tulis Bersih 100%) */
+        #canvas-box {
+            position: relative;
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 360px;
+            height: 310px;
+            border-radius: 25px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            border: 4px solid #4FC3F7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            background: #FFFFFF;
+        }
+
+        /* Bottom Control Buttons */
+        #controls-box {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            background: #0288D1;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 12px 10px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .nav-btn.next-btn {
+            background: #00BFA5;
+        }
+
+        .nav-btn.clear-btn {
+            background: #FF7043;
+            flex: 0.8;
+        }
+
+        .nav-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Overlays (Start & Ending) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: rgba(225, 245, 254, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .overlay.hidden {
+            display: none !important;
+        }
+
+        .overlay-card {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 5px solid #4FC3F7;
+            width: 92%;
+            max-width: 360px;
+        }
+
+        .title {
+            font-size: 26px;
+            color: #0288D1;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .menu-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .mode-btn {
+            background: #FF4081;
+            color: white;
+            border: 3px solid #FFF;
+            padding: 14px 18px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.18);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .mode-btn.secondary {
+            background: #00BFA5;
+        }
+
+        .mode-btn:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Header -->
+    <div id="header">
+        <button class="home-btn" id="homeBtn" title="Menu Utama">🏠 Menu</button>
+        <div class="pill-box" id="progressDisplay">Abjad: A (1/26)</div>
+        <div class="pill-box" id="starDisplay">⭐ 0</div>
+    </div>
+
+    <!-- Kotak Contoh Huruf/Angka di Atas -->
+    <div id="prompt-box">
+        <div class="prompt-info">
+            <span class="prompt-label" id="promptLabel">Tulis Huruf:</span>
+            <span class="prompt-char" id="promptChar">A</span>
+        </div>
+        <button class="sound-replay-btn" id="replaySoundBtn">🔊 Suara</button>
+    </div>
+
+    <!-- Papan Tulis Bebas (Kosong/Bersih) -->
+    <div id="canvas-box">
+        <canvas id="paintCanvas"></canvas>
+    </div>
+
+    <!-- Tombol Kontrol Bawah (Sblm, Hapus, Lanjut) -->
+    <div id="controls-box">
+        <button class="nav-btn" id="prevBtn">⬅️ Sblm</button>
+        <button class="nav-btn clear-btn" id="clearBtn">🔄 Hapus</button>
+        <button class="nav-btn next-btn" id="nextBtn">Lanjut ➡️</button>
+    </div>
+
+    <!-- Screen Halaman Menu Utama -->
+    <div id="start-overlay" class="overlay">
+        <div class="overlay-card">
+            <div style="font-size: 55px; margin-bottom: 5px;">✍️ A-Z & 0-10 📝</div>
+            <div class="title">Belajar Menulis</div>
+            <div class="subtitle">Lihat huruf di atas, lalu tulis di papan!</div>
+            
+            <div class="menu-btn-group">
+                <button class="mode-btn" id="modeAbjadBtn">
+                    🔤 Abjad A - Z
+                </button>
+                <button class="mode-btn secondary" id="modeAngkaBtn">
+                    🔢 Angka 0 - 10
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen ENDING -->
+    <div id="win-overlay" class="overlay hidden">
+        <div class="overlay-card">
+            <div style="font-size: 60px; margin-bottom: 8px;">🏆</div>
+            <div class="title" style="color: #00BFA5;">HORE! SELESAI!</div>
+            <div class="subtitle" id="winSubtitle">Pintar sekali, kamu sudah menulis semua abjad! 🎉</div>
+            
+            <div class="menu-btn-group">
+                <button class="mode-btn" id="restartBtn">ULANG LAGI 🔄</button>
+                <button class="mode-btn secondary" id="winHomeBtn">MENU UTAMA 🏠</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const abjadList = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+    const angkaList = ['0','1','2','3','4','5','6','7','8','9','10'];
+    const colors = ['#FF4081', '#FF9100', '#00E676', '#2979FF', '#AA00FF', '#FF1744'];
+
+    let activeList = abjadList;
+    let modeType = 'abjad';
+    let currentIndex = 0;
+    let stars = 0;
+    
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let colorIndex = 0;
+
+    let audioCtx = null;
+
+    // DOM Elements
+    const canvas = document.getElementById('paintCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasBox = document.getElementById('canvas-box');
+
+    const startOverlay = document.getElementById('start-overlay');
+    const winOverlay = document.getElementById('win-overlay');
+    const modeAbjadBtn = document.getElementById('modeAbjadBtn');
+    const modeAngkaBtn = document.getElementById('modeAngkaBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const winHomeBtn = document.getElementById('winHomeBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    
+    const prevBtn = document.getElementById('prevBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const replaySoundBtn = document.getElementById('replaySoundBtn');
+
+    const progressDisplay = document.getElementById('progressDisplay');
+    const starDisplay = document.getElementById('starDisplay');
+    const promptLabel = document.getElementById('promptLabel');
+    const promptChar = document.getElementById('promptChar');
+    const winSubtitle = document.getElementById('winSubtitle');
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playPopNote(freq = 523.25) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } catch (e) {}
+    }
+
+    function playWinFanfare() {
+        if (!audioCtx) return;
+        try {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const startTime = audioCtx.currentTime + (idx * 0.12);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.5, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.35);
+            });
+        } catch (e) {}
+    }
+
+    function speakTarget() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const char = activeList[currentIndex];
+            const text = modeType === 'abjad' ? `Tulis huruf ${char}` : `Tulis angka ${char}`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function speakPraise() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const praises = ['Pintar!', 'Hebat!', 'Bagus sekali!', 'Luar biasa!'];
+            const randomPraise = praises[Math.floor(Math.random() * praises.length)];
+            const utterance = new SpeechSynthesisUtterance(`Bagus! ${randomPraise}`);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function resizeCanvas() {
+        const rect = canvasBox.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        clearCanvas();
+    }
+
+    function clearCanvas() {
+        const w = canvas.width / (window.devicePixelRatio || 1);
+        const h = canvas.height / (window.devicePixelRatio || 1);
+        ctx.clearRect(0, 0, w, h);
+    }
+
+    function getPointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
+
+    function startDrawing(e) {
+        e.preventDefault();
+        initAudio();
+
+        isDrawing = true;
+        const pos = getPointerPos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+    }
+
+    function draw(e) {
+        e.preventDefault();
+        if (!isDrawing) return;
+
+        const pos = getPointerPos(e);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.strokeStyle = colors[colorIndex % colors.length];
+        ctx.lineWidth = 20; // Ukuran garis kuas empuk untuk jari balita
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.restore();
+
+        colorIndex++;
+
+        lastX = pos.x;
+        lastY = pos.y;
+    }
+
+    function stopDrawing(e) {
+        isDrawing = false;
+    }
+
+    function updateStep() {
+        const char = activeList[currentIndex];
+        const total = activeList.length;
+
+        if (modeType === 'abjad') {
+            progressDisplay.innerText = `Abjad: ${char} (${currentIndex + 1}/${total})`;
+            promptLabel.innerText = 'Tulis Huruf:';
+        } else {
+            progressDisplay.innerText = `Angka: ${char} (${currentIndex + 1}/${total})`;
+            promptLabel.innerText = 'Tulis Angka:';
+        }
+
+        promptChar.innerText = char;
+        starDisplay.innerText = `⭐ ${stars}`;
+
+        clearCanvas();
+        setTimeout(() => speakTarget(), 200);
+    }
+
+    function goNext() {
+        stars += 1;
+        playPopNote(783.99);
+        speakPraise();
+
+        if (currentIndex < activeList.length - 1) {
+            currentIndex++;
+            updateStep();
+        } else {
+            showWinScreen();
+        }
+    }
+
+    function goPrev() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            updateStep();
+        }
+    }
+
+    function showWinScreen() {
+        playWinFanfare();
+        winOverlay.classList.remove('hidden');
+        winSubtitle.innerText = modeType === 'abjad' 
+            ? 'Pintar sekali, kamu sudah menulis semua abjad A - Z! 🎉'
+            : 'Pintar sekali, kamu sudah menulis semua angka 0 - 10! 🎉';
+
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance("Hore! Kamu hebat sekali, sudah pandai menulis semuanya!");
+            utterance.lang = 'id-ID';
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function showMainMenu() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        startOverlay.classList.remove('hidden');
+        winOverlay.classList.add('hidden');
+    }
+
+    function startGame(selectedMode) {
+        initAudio();
+        modeType = selectedMode;
+        activeList = modeType === 'abjad' ? abjadList : angkaList;
+        currentIndex = 0;
+        stars = 0;
+
+        startOverlay.classList.add('hidden');
+        winOverlay.classList.add('hidden');
+        resizeCanvas();
+        updateStep();
+    }
+
+    // Pointer Event Handlers untuk Menulis di Papan
+    canvas.addEventListener('pointerdown', startDrawing, { passive: false });
+    canvas.addEventListener('pointermove', draw, { passive: false });
+    canvas.addEventListener('pointerup', stopDrawing);
+    canvas.addEventListener('pointercancel', stopDrawing);
+
+    // Navigasi Manual
+    nextBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        goNext();
+    });
+
+    prevBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        playPopNote(450);
+        goPrev();
+    });
+
+    clearBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        playPopNote(400);
+        clearCanvas();
+    });
+
+    replaySoundBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        initAudio();
+        speakTarget();
+    });
+
+    modeAbjadBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame('abjad'); });
+    modeAngkaBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame('angka'); });
+    restartBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(modeType); });
+    winHomeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+    homeBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); showMainMenu(); });
+
+    window.addEventListener('resize', () => {
+        setTimeout(resizeCanvas, 100);
+    });
+
+    setTimeout(resizeCanvas, 50);
+</script>
+</body>
+</html>
